@@ -86,7 +86,6 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      // Get base URL from environment or use fallback
       final String baseUrl = dotenv.env['BASE_URL'] ?? 'YOUR_BASE_URL_HERE';
 
       final response = await _dio.post(
@@ -99,14 +98,11 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (response.statusCode == 200 && response.data['success'] == true) {
-        // Save token securely
         final String token = response.data['data']['token'];
         await _secureStorage.write(key: 'auth_token', value: token);
 
-        // Save credentials if remember me is checked
         await _saveCredentials();
 
-        // Show success message
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -116,7 +112,6 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           );
 
-          // Navigate to main shell
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (_) => const MainShell()),
@@ -141,7 +136,6 @@ class _LoginScreenState extends State<LoginScreen> {
           errorMessage = 'Server error. Please try again later.';
         }
       } else {
-        // Handle different types of connection errors
         switch (e.type) {
           case DioExceptionType.connectionTimeout:
             errorMessage = 'Connection timeout. Please check your network.';
@@ -226,8 +220,6 @@ class _LoginScreenState extends State<LoginScreen> {
               height: 125.h,
             ),
           ),
-
-          // Main content
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -238,8 +230,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       SizedBox(height: 60.h),
-
-                      // Title
                       Text(
                         'Login',
                         style: GoogleFonts.dmSans(
@@ -253,13 +243,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         'Please login into your existing account',
                         style: GoogleFonts.dmSans(
                           fontSize: 16.sp,
-                          color: Color(0xFF718096),
+                          color: const Color(0xFF718096),
                           fontWeight: FontWeight.w400,
                         ),
                       ),
                       SizedBox(height: 25.h),
 
-                      // Email
+                      /// Email
                       Text(
                         "Email",
                         style: GoogleFonts.dmSans(
@@ -269,49 +259,42 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       SizedBox(height: 4.h),
-                      Container(
-                        height: 50.h,
-                        decoration: BoxDecoration(
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
-                          borderRadius: BorderRadius.circular(8.r),
-                        ),
-                        child: Theme(
-                          data: Theme.of(context).copyWith(
-                            textSelectionTheme: TextSelectionThemeData(
-                              selectionHandleColor: AppColors.cursor,
-                              selectionColor: Colors.grey.withOpacity(0.3),
-                            ),
+                      TextFormField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        textInputAction: TextInputAction.next,
+                        validator: _validateEmail,
+                        cursorColor: AppColors.cursor,
+                        style: GoogleFonts.dmSans(fontSize: 16.sp),
+                        decoration: InputDecoration(
+                          hintText: "test@gmail.com",
+                          hintStyle: GoogleFonts.dmSans(
+                            color: const Color(0xFFA0AEC0),
+                            fontSize: 16.sp,
                           ),
-                          child: TextFormField(
-                            controller: _emailController,
-                            keyboardType: TextInputType.emailAddress,
-                            textInputAction: TextInputAction.next,
-                            validator: _validateEmail,
-                            cursorColor: AppColors.cursor,
-                            style: GoogleFonts.dmSans(fontSize: 16.sp),
-                            decoration: InputDecoration(
-                              hintText: "test@gmail.com",
-                              hintStyle: GoogleFonts.dmSans(
-                                color: Color(0xFFA0AEC0),
-                                fontSize: 16.sp,
-                              ),
-                              suffixIcon: Icon(
-                                Icons.email_outlined,
-                                color: Color(0xFFA0AEC0),
-                                size: 20.sp,
-                              ),
-                              border: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 16.w,
-                                vertical: 10.h,
-                              ),
-                            ),
+                          suffixIcon: Icon(
+                            Icons.email_outlined,
+                            color: const Color(0xFFA0AEC0),
+                            size: 20.sp,
                           ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8.r),
+                            borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1),
+                          ),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 16.w,
+                            vertical: 12.h,
+                          ),
+                          errorStyle: GoogleFonts.dmSans(
+                            fontSize: 12.sp,
+                            color: Colors.red,
+                          ),
+                          errorMaxLines: 2,
                         ),
                       ),
                       SizedBox(height: 15.h),
 
-                      // Password
+                      /// Password
                       Text(
                         "Password",
                         style: GoogleFonts.dmSans(
@@ -321,54 +304,47 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       SizedBox(height: 4.h),
-                      Container(
-                        height: 50.h,
-                        decoration: BoxDecoration(
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
-                          borderRadius: BorderRadius.circular(8.r),
-                        ),
-                        child: Theme(
-                          data: Theme.of(context).copyWith(
-                            textSelectionTheme: TextSelectionThemeData(
-                              selectionHandleColor: AppColors.cursor,
-                              selectionColor: Colors.grey.withOpacity(0.3),
-                            ),
+                      TextFormField(
+                        controller: _passwordController,
+                        obscureText: _obscurePassword,
+                        textInputAction: TextInputAction.done,
+                        validator: _validatePassword,
+                        onFieldSubmitted: (_) => _login(),
+                        cursorColor: AppColors.cursor,
+                        style: GoogleFonts.dmSans(fontSize: 16.sp),
+                        decoration: InputDecoration(
+                          hintText: "X23cdT@3g^",
+                          hintStyle: GoogleFonts.dmSans(
+                            color: const Color(0xFFA0AEC0),
+                            fontSize: 16.sp,
                           ),
-                          child: TextFormField(
-                            controller: _passwordController,
-                            obscureText: _obscurePassword,
-                            textInputAction: TextInputAction.done,
-                            validator: _validatePassword,
-                            onFieldSubmitted: (_) => _login(),
-                            cursorColor: AppColors.cursor,
-                            style: GoogleFonts.dmSans(fontSize: 16.sp),
-                            decoration: InputDecoration(
-                              hintText: "X23cdT@3g^",
-                              hintStyle: GoogleFonts.dmSans(
-                                color: Color(0xFFA0AEC0),
-                                fontSize: 16.sp,
-                              ),
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _obscurePassword
-                                      ? Icons.visibility_off_outlined
-                                      : Icons.visibility_outlined,
-                                  color: const Color(0xFFA0AEC0),
-                                  size: 20.sp,
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    _obscurePassword = !_obscurePassword;
-                                  });
-                                },
-                              ),
-                              border: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 16.w,
-                                vertical: 10.h,
-                              ),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_off_outlined
+                                  : Icons.visibility_outlined,
+                              color: const Color(0xFFA0AEC0),
+                              size: 20.sp,
                             ),
+                            onPressed: () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
+                            },
                           ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8.r),
+                            borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1),
+                          ),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 16.w,
+                            vertical: 12.h,
+                          ),
+                          errorStyle: GoogleFonts.dmSans(
+                            fontSize: 12.sp,
+                            color: Colors.red,
+                          ),
+                          errorMaxLines: 2,
                         ),
                       ),
                       SizedBox(height: 16.h),
