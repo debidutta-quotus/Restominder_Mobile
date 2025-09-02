@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
 import 'routes/app_routes.dart';
 import 'common/theme/app_theme.dart';
+import 'features/menu/controller/menu_controller.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -13,19 +15,22 @@ class MyApp extends StatelessWidget {
       minTextAdapt: true,
       splitScreenMode: true,
       builder: (context, child) {
-        return MaterialApp(
-          title: 'RestoMinder',
-          debugShowCheckedModeBanner: false,
-          theme: AppTheme.lightTheme,
-          initialRoute: AppRoutes.splash, 
-          routes: AppRoutes.routes,
-          builder: (context, widget) {
-            return MediaQuery(
-              // ignore: deprecated_member_use
-              data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
-              child: widget!,
-            );
-          },
+        return MultiProvider(
+          providers: [ChangeNotifierProvider(create: (_) => MenuControllers())],
+          child: MaterialApp(
+            title: 'RestoMinder',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            initialRoute: AppRoutes.splash,
+            routes: AppRoutes.routes,
+            builder: (context, widget) {
+              return MediaQuery(
+                // ignore: deprecated_member_use
+                data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
+                child: widget!,
+              );
+            },
+          ),
         );
       },
     );

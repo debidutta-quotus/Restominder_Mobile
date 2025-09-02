@@ -1,20 +1,21 @@
 import 'package:flutter/material.dart';
 import '../../../common/theme/app_colors.dart';
 import '../constants/menu_constants.dart';
+import '../model/menu_item_model.dart';
 
 enum MenuSheetMode { add, edit, view }
 
 class AddMenuSheet extends StatefulWidget {
   final MenuSheetMode mode;
-  final Map<String, String>? itemData;
-  final VoidCallback? onAdd;
+  final MenuItemModel? itemData;
+  final Function(Map<String, dynamic>)? onSave;
   final VoidCallback onCancel;
 
   const AddMenuSheet({
     super.key,
     required this.mode,
     this.itemData,
-    this.onAdd,
+    this.onSave,
     required this.onCancel,
   });
 
@@ -36,6 +37,7 @@ class _AddMenuSheetState extends State<AddMenuSheet> {
   String? _dietaryType;
   final List<String> _tags = [];
   bool _isFullScreen = false;
+  bool _available = true;
 
   @override
   void initState() {
@@ -47,26 +49,47 @@ class _AddMenuSheetState extends State<AddMenuSheet> {
 
   void _populateFields() {
     final data = widget.itemData!;
-    _itemNameController.text = data['name'] ?? '';
-    _priceController.text = data['price']?.replaceAll('\$', '') ?? '';
-    _category = data['category'];
-    _dietaryType = data['type']; // Assuming type maps to dietary type
+    _itemNameController.text = data.name;
+    _priceController.text = data.price.toString();
+    _category = data.category;
+    _dietaryType = _mapDietaryFromApi(data.dietary);
+    _minPrepTimeController.text = data.minPrepTime.toString();
+    _maxPrepTimeController.text = data.maxPrepTime.toString();
+    _maxOrdersController.text = data.maxPossibleOrders.toString();
+    _descriptionController.text = data.description;
+    _available = data.available;
     
-    // Parse time range (e.g., "15–20 mins" -> min: 15, max: 20)
-    final timeRange = data['time'] ?? '';
-    final timeMatch = RegExp(r'(\d+)–(\d+)').firstMatch(timeRange);
-    if (timeMatch != null) {
-      _minPrepTimeController.text = timeMatch.group(1) ?? '';
-      _maxPrepTimeController.text = timeMatch.group(2) ?? '';
+    // Add tags
+    _tags.addAll(data.tags);
+  }
+
+  String _mapDietaryFromApi(String apiDietary) {
+    switch (apiDietary.toLowerCase()) {
+      case 'veg':
+        return 'Vegetarian';
+      case 'non-veg':
+        return 'Non-Vegetarian';
+      case 'vegan':
+        return 'Vegan';
+      case 'gluten-free':
+        return 'Gluten-Free';
+      default:
+        return 'Vegetarian';
     }
-    
-    _maxOrdersController.text = '1'; // Default value
-    _descriptionController.text = data['tag'] ?? ''; // Using tag as description for now
-    
-    // Parse tags from the tag field (split by spaces or commas)
-    final tagString = data['tag'] ?? '';
-    if (tagString.isNotEmpty) {
-      _tags.addAll(tagString.split(' ').where((tag) => tag.isNotEmpty));
+  }
+
+  String _mapDietaryToApi(String displayDietary) {
+    switch (displayDietary) {
+      case 'Vegetarian':
+        return 'veg';
+      case 'Non-Vegetarian':
+        return 'non-veg';
+      case 'Vegan':
+        return 'vegan';
+      case 'Gluten-Free':
+        return 'gluten-free';
+      default:
+        return 'veg';
     }
   }
 
@@ -119,6 +142,26 @@ class _AddMenuSheetState extends State<AddMenuSheet> {
         return 'Update Item';
       case MenuSheetMode.view:
         return 'Close';
+    }
+  }
+
+  void _handleSave() {
+    if (_formKey.currentState!.validate() && _category != null && _dietaryType != null) {
+      final menuData = {
+        'name': _itemNameController.text.trim(),
+        'description': _descriptionController.text.trim(),
+        'price': double.tryParse(_priceController.text) ?? 0.0,
+        'minPrepTime': int.tryParse(_minPrepTimeController.text) ?? 0,
+        'maxPrepTime': int.tryParse(_maxPrepTimeController.text) ?? 0,
+        'maxPossibleOrders': int.tryParse(_maxOrdersController.text) ?? 1,
+        'tags': _tags,
+        'category': _category!,
+        'dietary': _mapDietaryToApi(_dietaryType!),
+        'images': widget.itemData?.images ?? [],
+        'available': _available,
+      };
+
+      widget.onSave?.call(menuData);
     }
   }
 
@@ -347,13 +390,7 @@ class _AddMenuSheetState extends State<AddMenuSheet> {
                             const SizedBox(width: 16),
                             Expanded(
                               child: ElevatedButton(
-                                onPressed: () {
-                                  if (_formKey.currentState!.validate() &&
-                                      _category != null &&
-                                      _dietaryType != null) {
-                                    widget.onAdd?.call();
-                                  }
-                                },
+                                onPressed: _handleSave,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.blue,
                                   padding: const EdgeInsets.symmetric(vertical: 16),
@@ -627,47 +664,52 @@ class _AddMenuSheetState extends State<AddMenuSheet> {
               height: 60,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(8),
-                image: DecorationImage(
-                  image: AssetImage(widget.itemData?['image'] ?? 'assets/images/paneer.webp'),
-                  fit: BoxFit.cover,
-                ),
+                border: Border.all(color: Colors.grey.shade300),
               ),
-              child: _isReadOnly ? null : Stack(
-                children: [
-                  Positioned(
-                    top: 4,
-                    right: 4,
-                    child: Container(
-                      width: 20,
-                      height: 20,
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        borderRadius: BorderRadius.circular(10),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: widget.itemData?.images.isNotEmpty == true
+                    ? Image.network(
+                        widget.itemData!.primaryImage,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: Colors.grey.shade200,
+                            child: Icon(
+                              Icons.restaurant,
+                              color: Colors.grey.shade400,
+                            ),
+                          );
+                        },
+                      )
+                    : Container(
+                        color: Colors.grey.shade200,
+                        child: Icon(
+                          Icons.restaurant,
+                          color: Colors.grey.shade400,
+                        ),
                       ),
-                      child: const Icon(
-                        Icons.close,
-                        color: Colors.white,
-                        size: 12,
-                      ),
-                    ),
-                  ),
-                ],
               ),
             ),
             if (!_isReadOnly) ...[
               const SizedBox(width: 16),
               // Add more images button
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: Colors.grey.shade300,
-                    style: BorderStyle.solid,
+              GestureDetector(
+                onTap: () {
+                  // Handle image upload
+                },
+                child: Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: Colors.grey.shade300,
+                      style: BorderStyle.solid,
+                    ),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  borderRadius: BorderRadius.circular(8),
+                  child: Icon(Icons.add, color: Colors.grey.shade400, size: 24),
                 ),
-                child: Icon(Icons.add, color: Colors.grey.shade400, size: 24),
               ),
             ],
           ],

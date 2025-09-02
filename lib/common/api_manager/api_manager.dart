@@ -2,9 +2,10 @@ import 'package:dio/dio.dart';
 import 'dio_client.dart';
 
 class ApiManager {
-  final Dio _dio = DioClient.instance;
+  final Dio _dio;
+  ApiManager.base() : _dio = DioClient.baseInstance;
+  ApiManager.pos() : _dio = DioClient.posInstance;
 
-  // GET request
   Future<dynamic> getRequest(String endpoint) async {
     try {
       final response = await _dio.get(endpoint);
@@ -14,7 +15,6 @@ class ApiManager {
     }
   }
 
-  // POST request
   Future<dynamic> postRequest(String endpoint, Map<String, dynamic> data) async {
     try {
       final response = await _dio.post(endpoint, data: data);
@@ -24,7 +24,24 @@ class ApiManager {
     }
   }
 
-  // Centralized error handling
+  Future<dynamic> putRequest(String endpoint, Map<String, dynamic> data) async {
+    try {
+      final response = await _dio.put(endpoint, data: data);
+      return response.data;
+    } on DioException catch (e) {
+      throw Exception(_handleError(e));
+    }
+  }
+
+  Future<dynamic> deleteRequest(String endpoint) async {
+    try {
+      final response = await _dio.delete(endpoint);
+      return response.data;
+    } on DioException catch (e) {
+      throw Exception(_handleError(e));
+    }
+  }
+
   String _handleError(DioException e) {
     if (e.type == DioExceptionType.connectionTimeout) {
       return "Connection timeout!";
