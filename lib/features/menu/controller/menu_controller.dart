@@ -145,8 +145,12 @@ class MenuControllers extends ChangeNotifier {
         'available': available ?? true,
       };
 
+      print("################ Updating menu item: $id");
+
       final updatedItem = await _menuApi.updateMenuItem(id, menuData);
-      
+
+      print("################ Updated menu item: $id");
+
       // Update the item in the local list
       final index = _menuItems.indexWhere((item) => item.id == id);
       if (index != -1) {
@@ -185,24 +189,60 @@ class MenuControllers extends ChangeNotifier {
     }
   }
 
-  // Toggle menu item availability
+  // Optimized toggle menu item availability - no loading state to prevent UI rebuilds
   Future<bool> toggleAvailability(String id) async {
-    final item = _menuItems.firstWhere((item) => item.id == id);
+    // Clear any existing errors but don't set loading to prevent UI rebuilds
+    _setError(null);
+
+    final itemIndex = _menuItems.indexWhere((item) => item.id == id);
+    if (itemIndex == -1) {
+      _setError('Menu item not found');
+      return false;
+    }
+
+    final item = _menuItems[itemIndex];
+    final originalAvailability = item.available;
     
-    return await updateMenuItem(
-      id: id,
-      name: item.name,
-      description: item.description,
-      price: item.price,
-      minPrepTime: item.minPrepTime,
-      maxPrepTime: item.maxPrepTime,
-      maxPossibleOrders: item.maxPossibleOrders,
-      tags: item.tags,
-      category: item.category,
-      dietary: item.dietary,
-      images: item.images,
-      available: !item.available,
-    );
+    try {
+      // Optimistic update - update UI immediately using copyWith
+      _menuItems[itemIndex] = item.copyWith(available: !originalAvailability);
+      notifyListeners(); // Update UI immediately
+
+      final menuData = {
+        'name': item.name,
+        'description': item.description,
+        'price': item.price,
+        'minPrepTime': item.minPrepTime,
+        'maxPrepTime': item.maxPrepTime,
+        'maxPossibleOrders': item.maxPossibleOrders,
+        'tags': item.tags,
+        'category': item.category,
+        'dietary': item.dietary,
+        'images': item.images,
+        'available': !originalAvailability,
+      };
+
+      print("################ Toggling availability for item: $id to ${!originalAvailability}");
+
+      final updatedItem = await _menuApi.updateMenuItem(id, menuData);
+
+      print("################ Successfully toggled availability for item: $id");
+
+      // Update with the actual server response
+      _menuItems[itemIndex] = updatedItem;
+      notifyListeners();
+      
+      return true;
+    } catch (e) {
+      print("################ Error toggling availability: $e");
+      
+      // Revert the optimistic update on error using copyWith
+      _menuItems[itemIndex] = item.copyWith(available: originalAvailability);
+      
+      _setError(e.toString());
+      notifyListeners();
+      return false;
+    }
   }
 
   // Refresh menu items

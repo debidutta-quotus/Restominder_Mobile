@@ -8,7 +8,7 @@ class MenuApi {
   Future<List<MenuItemModel>> getMenuItems() async {
     try {
       final response = await _apiManager.getRequest('/menu');
-      
+
       if (response['success'] == true && response['menus'] != null) {
         final List<dynamic> menusJson = response['menus'];
         return menusJson.map((json) => MenuItemModel.fromJson(json)).toList();
@@ -24,7 +24,7 @@ class MenuApi {
   Future<MenuItemModel> createMenuItem(Map<String, dynamic> menuData) async {
     try {
       final response = await _apiManager.postRequest('/menu', menuData);
-      
+
       if (response['success'] == true && response['menu'] != null) {
         return MenuItemModel.fromJson(response['menu']);
       } else {
@@ -36,11 +36,17 @@ class MenuApi {
   }
 
   // Update menu item
-  Future<MenuItemModel> updateMenuItem(String id, Map<String, dynamic> menuData) async {
+  Future<MenuItemModel> updateMenuItem(
+    String id,
+    Map<String, dynamic> menuData,
+  ) async {
     try {
+      print("entering into menu_api.dart file");
       final response = await _apiManager.putRequest('/menu/$id', menuData);
-      
-      if (response['success'] == true && response['menu'] != null) {
+      print("response from menu_api.dart file: $response");
+
+      // Fixed: PUT response doesn't have 'success' field, only 'message' and 'menu'
+      if (response['menu'] != null) {
         return MenuItemModel.fromJson(response['menu']);
       } else {
         throw Exception(response['message'] ?? 'Failed to update menu item');
@@ -54,7 +60,7 @@ class MenuApi {
   Future<bool> deleteMenuItem(String id) async {
     try {
       final response = await _apiManager.deleteRequest('/menu/$id');
-      
+
       return response['success'] == true;
     } catch (e) {
       throw Exception('Failed to delete menu item: $e');
@@ -65,7 +71,7 @@ class MenuApi {
   Future<MenuItemModel> getMenuItemById(String id) async {
     try {
       final response = await _apiManager.getRequest('/menu/$id');
-      
+
       if (response['success'] == true && response['menu'] != null) {
         return MenuItemModel.fromJson(response['menu']);
       } else {

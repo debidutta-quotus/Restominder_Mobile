@@ -50,7 +50,6 @@ class DioClient {
     _posDio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          debugPrint('POS API request: ${options.uri}');
           final tokenService = TokenService();
           final token = await tokenService.getToken();
           if (token != null) {
@@ -60,15 +59,12 @@ class DioClient {
           } else {
             debugPrint('No token found for POS request');
           }
-          debugPrint('POS request headers: ${options.headers}');
           return handler.next(options);
         },
         onResponse: (response, handler) {
-          debugPrint('POS API response: ${response.statusCode}');
           return handler.next(response);
         },
         onError: (DioException e, handler) async {
-          debugPrint('POS API error: ${e.message}, Status: ${e.response?.statusCode}, Response: ${e.response?.data}');
           if (e.response?.statusCode == 401) {
             debugPrint('Unauthorized: Preparing to redirect to login');
             await AuthController().logout();
