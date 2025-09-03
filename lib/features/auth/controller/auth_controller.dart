@@ -1,23 +1,45 @@
+import 'package:flutter/foundation.dart'; // For debugPrint
 import 'package:resto_minder/common/services/token_service.dart';
 import '../api/auth_api.dart';
 import '../model/login_model.dart';
-import 'package:flutter/foundation.dart'; // For debugPrint
 
 class AuthController {
   final AuthApi _authApi = AuthApi();
   final TokenService _tokenService = TokenService();
 
-  Future<bool> login(String email, String password) async {
+  Future<bool> login(String email, String password, {bool rememberMe = false}) async {
     try {
       final request = LoginRequest(email: email, password: password);
       final response = await _authApi.login(request);
       debugPrint('Login response: ${response.data.toJson()}');
       await _tokenService.saveToken(response.data.token);
       debugPrint('Token saved after login: ${response.data.token}');
+      if (rememberMe) {
+        await saveCredentials(email, password, rememberMe);
+      }
       return true;
     } catch (e) {
       debugPrint('Login error: $e');
-      rethrow; // Rethrow to allow LoginScreen to handle specific errors
+      rethrow;
+    }
+  }
+
+  Future<bool> autoLogin() async {
+    try {
+      if (await _tokenService.isRememberMeEnabled()) {
+        final token = await _tokenService.getToken();
+        if (token != null) {
+          debugPrint('Auto-login: Token found: $token');
+          // Optional: Validate token with a test API call
+          // For example: await _authApi.validateToken(token);
+          return true;
+        }
+      }
+      debugPrint('Auto-login: No token or RememberMe disabled');
+      return false;
+    } catch (e) {
+      debugPrint('Auto-login error: $e');
+      return false;
     }
   }
 
@@ -91,7 +113,6 @@ class AuthController {
     }
   }
 
-  // Method to debug token storage and retrieval
   Future<void> debugToken() async {
     try {
       final token = await _tokenService.getToken();
