@@ -7,9 +7,7 @@ import 'features/menu/controller/menu_controller.dart';
 import 'common/api_manager/dio_client.dart'; // For navigatorKey
 
 class MyApp extends StatelessWidget {
-  final String initialRoute;
-
-  const MyApp({super.key, required this.initialRoute});
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +26,7 @@ class MyApp extends StatelessWidget {
             title: 'RestoMinder',
             debugShowCheckedModeBanner: false,
             theme: AppTheme.lightTheme,
-            initialRoute: initialRoute,
+            initialRoute: AppRoutes.splash,
             routes: AppRoutes.routes,
             builder: (context, widget) {
               return MediaQuery(

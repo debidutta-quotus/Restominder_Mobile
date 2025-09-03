@@ -4,7 +4,6 @@ import 'package:resto_minder/common/api_manager/dio_client.dart';
 import 'package:resto_minder/common/services/token_service.dart';
 import 'package:resto_minder/features/auth/controller/auth_controller.dart';
 import 'package:resto_minder/app.dart';
-import 'package:resto_minder/routes/app_routes.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,17 +14,14 @@ void main() async {
   // Check for auto-login
   final tokenService = TokenService();
   final authController = AuthController();
-  String initialRoute = AppRoutes.splash;
 
   if (await tokenService.isRememberMeEnabled()) {
     if (await authController.autoLogin()) {
-      initialRoute = AppRoutes.home; // Ensure AppRoutes.home is defined
+// Ensure AppRoutes.home is defined
     } else {
-      initialRoute = AppRoutes.login;
     }
   } else {
-    initialRoute = AppRoutes.login;
   }
 
-  runApp(MyApp(initialRoute: initialRoute));
+  runApp(MyApp());
 }
