@@ -25,7 +25,8 @@ class MenuApi {
     try {
       final response = await _apiManager.postRequest('/menu', menuData);
 
-      if (response['success'] == true && response['menu'] != null) {
+      // Fixed: Check for menu object directly since POST response doesn't have 'success' field
+      if (response['menu'] != null) {
         return MenuItemModel.fromJson(response['menu']);
       } else {
         throw Exception(response['message'] ?? 'Failed to create menu item');

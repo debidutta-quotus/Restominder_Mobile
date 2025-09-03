@@ -100,11 +100,17 @@ class MenuControllers extends ChangeNotifier {
         'available': true,
       };
 
+      print("################ Creating menu item with data: $menuData");
+
       final newItem = await _menuApi.createMenuItem(menuData);
+      
+      print("################ Successfully created menu item: ${newItem.id}");
+      
       _menuItems.add(newItem);
       notifyListeners();
       return true;
     } catch (e) {
+      print("################ Error creating menu item: $e");
       _setError(e.toString());
       return false;
     } finally {
@@ -149,7 +155,7 @@ class MenuControllers extends ChangeNotifier {
 
       final updatedItem = await _menuApi.updateMenuItem(id, menuData);
 
-      print("################ Updated menu item: $id");
+      print("################ Successfully updated menu item: $id");
 
       // Update the item in the local list
       final index = _menuItems.indexWhere((item) => item.id == id);
@@ -160,6 +166,7 @@ class MenuControllers extends ChangeNotifier {
       
       return true;
     } catch (e) {
+      print("################ Error updating menu item: $e");
       _setError(e.toString());
       return false;
     } finally {
@@ -173,15 +180,19 @@ class MenuControllers extends ChangeNotifier {
     _setError(null);
 
     try {
+      print("################ Deleting menu item: $id");
+      
       final success = await _menuApi.deleteMenuItem(id);
       
       if (success) {
         _menuItems.removeWhere((item) => item.id == id);
         notifyListeners();
+        print("################ Successfully deleted menu item: $id");
       }
       
       return success;
     } catch (e) {
+      print("################ Error deleting menu item: $e");
       _setError(e.toString());
       return false;
     } finally {
