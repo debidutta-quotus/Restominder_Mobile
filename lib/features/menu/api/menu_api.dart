@@ -42,9 +42,7 @@ class MenuApi {
     Map<String, dynamic> menuData,
   ) async {
     try {
-      print("entering into menu_api.dart file");
       final response = await _apiManager.putRequest('/menu/$id', menuData);
-      print("response from menu_api.dart file: $response");
 
       // Fixed: PUT response doesn't have 'success' field, only 'message' and 'menu'
       if (response['menu'] != null) {
