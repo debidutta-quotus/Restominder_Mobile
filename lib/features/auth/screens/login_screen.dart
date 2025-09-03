@@ -5,10 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:dio/dio.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-
+import 'package:resto_minder/features/auth/controller/auth_controller.dart';
 import '../../../common/theme/app_colors.dart';
 import '../../../register_store/screens/basic_info_screen.dart';
 import 'forgotPassword_screen.dart';
@@ -29,9 +26,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-
-  final Dio _dio = Dio();
-  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
+  final AuthController _authController = AuthController();
 
   @override
   void initState() {
@@ -47,9 +42,14 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _loadSavedCredentials() async {
-    if (_rememberMe) {
-      final savedEmail = await _secureStorage.read(key: 'saved_email');
-      final savedPassword = await _secureStorage.read(key: 'saved_password');
+    final rememberMeEnabled = await _authController.isRememberMeEnabled();
+    setState(() {
+      _rememberMe = rememberMeEnabled;
+    });
+
+    if (rememberMeEnabled) {
+      final savedEmail = await _authController.getSavedEmail();
+      final savedPassword = await _authController.getSavedPassword();
 
       if (savedEmail != null) {
         _emailController.text = savedEmail;
@@ -61,19 +61,11 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _saveCredentials() async {
-    if (_rememberMe) {
-      await _secureStorage.write(
-        key: 'saved_email',
-        value: _emailController.text,
-      );
-      await _secureStorage.write(
-        key: 'saved_password',
-        value: _passwordController.text,
-      );
-    } else {
-      await _secureStorage.delete(key: 'saved_email');
-      await _secureStorage.delete(key: 'saved_password');
-    }
+    await _authController.saveCredentials(
+      _emailController.text,
+      _passwordController.text,
+      _rememberMe,
+    );
   }
 
   Future<void> _login() async {
@@ -86,29 +78,20 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      final String baseUrl = dotenv.env['BASE_URL'] ?? 'YOUR_BASE_URL_HERE';
-
-      final response = await _dio.post(
-        '$baseUrl/store/login',
-        data: {
-          'email': _emailController.text.trim(),
-          'password': _passwordController.text,
-        },
-        options: Options(headers: {'Content-Type': 'application/json'}),
+      final success = await _authController.login(
+        _emailController.text.trim(),
+        _passwordController.text,
       );
 
-      if (response.statusCode == 200 && response.data['success'] == true) {
-        final String token = response.data['data']['token'];
-        await _secureStorage.write(key: 'auth_token', value: token);
-
+      if (success) {
         await _saveCredentials();
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(response.data['message'] ?? 'Login successful'),
+            const SnackBar(
+              content: Text('Login successful'),
               backgroundColor: Colors.green,
-              duration: const Duration(seconds: 2),
+              duration: Duration(seconds: 2),
             ),
           );
 
@@ -118,41 +101,21 @@ class _LoginScreenState extends State<LoginScreen> {
           );
         }
       } else {
-        throw DioException(
-          requestOptions: response.requestOptions,
-          response: response,
-          message: response.data['message'] ?? 'Login failed',
-        );
+        throw Exception('Login failed');
       }
-    } on DioException catch (e) {
+    } catch (e) {
       String errorMessage = 'Login failed. Please try again.';
 
-      if (e.response != null) {
-        if (e.response!.statusCode == 401) {
-          errorMessage = 'Invalid email or password';
-        } else if (e.response!.statusCode == 400) {
-          errorMessage = e.response!.data['message'] ?? 'Invalid credentials';
-        } else if (e.response!.statusCode == 500) {
-          errorMessage = 'Server error. Please try again later.';
-        }
-      } else {
-        switch (e.type) {
-          case DioExceptionType.connectionTimeout:
-            errorMessage = 'Connection timeout. Please check your network.';
-            break;
-          case DioExceptionType.receiveTimeout:
-            errorMessage = 'Server response timeout. Please try again.';
-            break;
-          case DioExceptionType.sendTimeout:
-            errorMessage = 'Request timeout. Please try again.';
-            break;
-          case DioExceptionType.connectionError:
-            errorMessage =
-                'Connection error. Please check your server URL and network connection.';
-            break;
-          default:
-            errorMessage = 'Network error: ${e.message ?? "Unknown error"}';
-        }
+      if (e.toString().contains('401')) {
+        errorMessage = 'Invalid email or password';
+      } else if (e.toString().contains('400')) {
+        errorMessage = 'Invalid credentials';
+      } else if (e.toString().contains('500')) {
+        errorMessage = 'Server error. Please try again later.';
+      } else if (e.toString().contains('timeout')) {
+        errorMessage = 'Connection timeout. Please check your network.';
+      } else if (e.toString().contains('connection error')) {
+        errorMessage = 'Connection error. Please check your network.';
       }
 
       if (mounted) {
@@ -161,16 +124,6 @@ class _LoginScreenState extends State<LoginScreen> {
             content: Text(errorMessage),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 3),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('An unexpected error occurred'),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 3),
           ),
         );
       }

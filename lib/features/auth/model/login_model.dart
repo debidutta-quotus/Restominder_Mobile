@@ -40,4 +40,8 @@ class LoginData {
       token: json['token'] ?? '',
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'token': token,
+      };
 }

@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../services/token_service.dart';
+import 'package:flutter/foundation.dart'; // For debugPrint
 
 class DioClient {
   static final Dio _baseDio = Dio(
@@ -29,15 +31,17 @@ class DioClient {
     _baseDio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
-          // Example: inject BASE token
-          // final token = await SecureStorage.getBaseToken();
-          // if (token != null) {
-          //   options.headers["Authorization"] = "Bearer $token";
-          // }
+          debugPrint('BASE API request: ${options.uri}');
           return handler.next(options);
         },
-        onResponse: (response, handler) => handler.next(response),
-        onError: (DioException e, handler) => handler.next(e),
+        onResponse: (response, handler) {
+          debugPrint('BASE API response: ${response.statusCode}');
+          return handler.next(response);
+        },
+        onError: (DioException e, handler) {
+          debugPrint('BASE API error: ${e.message}');
+          return handler.next(e);
+        },
       ),
     );
   }
@@ -46,16 +50,28 @@ class DioClient {
   static void addPosInterceptors() {
     _posDio.interceptors.add(
       InterceptorsWrapper(
-        onRequest: (options, handler) {
-          // Example: inject POS token / API Key
-          final apiKey = dotenv.env['API_KEY'];
-          if (apiKey != null) {
-            options.headers["x-api-key"] = apiKey;
+        onRequest: (options, handler) async {
+          debugPrint('POS API request: ${options.uri}');
+          // Inject POS token
+          final tokenService = TokenService();
+          final token = await tokenService.getToken();
+          if (token != null) {
+            options.headers["Authorization"] = "Bearer $token";
+            debugPrint('Token attached to POS request: $token');
+          } else {
+            debugPrint('No token found for POS request');
           }
+          debugPrint('POS request headers: ${options.headers}');
           return handler.next(options);
         },
-        onResponse: (response, handler) => handler.next(response),
-        onError: (DioException e, handler) => handler.next(e),
+        onResponse: (response, handler) {
+          debugPrint('POS API response: ${response.statusCode}');
+          return handler.next(response);
+        },
+        onError: (DioException e, handler) {
+          debugPrint('POS API error: ${e.message}, Status: ${e.response?.statusCode}, Response: ${e.response?.data}');
+          return handler.next(e);
+        },
       ),
     );
   }
