@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import '../../../common/theme/app_colors.dart';
-import '../constants/index.dart';
-import '../model/menu_item_model.dart';
+import '../../constants/index.dart';
+import '../../domain/entities/menu_item.dart';
+import '../../../../common/theme/app_colors.dart';
 
 enum MenuSheetMode { add, edit, view }
 
 class AddMenuSheet extends StatefulWidget {
   final MenuSheetMode mode;
-  final MenuItemModel? itemData;
+  final MenuItem? itemData;
   final Function(Map<String, dynamic>)? onSave;
   final VoidCallback onCancel;
 
@@ -52,45 +52,17 @@ class _AddMenuSheetState extends State<AddMenuSheet> {
     _itemNameController.text = data.name;
     _priceController.text = data.price.toString();
     _category = data.category;
-    _dietaryType = _mapDietaryFromApi(data.dietary);
+    _dietaryType = data.dietaryDisplayText;
     _minPrepTimeController.text = data.minPrepTime.toString();
     _maxPrepTimeController.text = data.maxPrepTime.toString();
     _maxOrdersController.text = data.maxPossibleOrders.toString();
     _descriptionController.text = data.description;
     _available = data.available;
-
-    // Add tags
     _tags.addAll(data.tags);
   }
 
-  String _mapDietaryFromApi(String apiDietary) {
-    switch (apiDietary.toLowerCase()) {
-      case 'veg':
-        return 'Vegetarian';
-      case 'non-veg':
-        return 'Non-Vegetarian';
-      case 'vegan':
-        return 'Vegan';
-      case 'gluten-free':
-        return 'Gluten-Free';
-      default:
-        return 'Vegetarian';
-    }
-  }
-
   String _mapDietaryToApi(String displayDietary) {
-    switch (displayDietary) {
-      case 'Vegetarian':
-        return 'veg';
-      case 'Non-Vegetarian':
-        return 'non-veg';
-      case 'Vegan':
-        return 'vegan';
-      case 'Gluten-Free':
-        return 'gluten-free';
-      default:
-        return 'veg';
-    }
+    return DietaryMapping.displayToApi[displayDietary] ?? 'veg';
   }
 
   @override
@@ -126,11 +98,11 @@ class _AddMenuSheetState extends State<AddMenuSheet> {
   String get _title {
     switch (widget.mode) {
       case MenuSheetMode.add:
-        return 'Add New Item';
+        return MenuTexts.addNewItem;
       case MenuSheetMode.edit:
-        return 'Edit Item';
+        return MenuTexts.editItem;
       case MenuSheetMode.view:
-        return 'View Item';
+        return MenuTexts.viewItem;
     }
   }
 
@@ -197,7 +169,6 @@ class _AddMenuSheetState extends State<AddMenuSheet> {
             ),
             child: Column(
               children: [
-                // Header
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeInOut,
@@ -222,7 +193,6 @@ class _AddMenuSheetState extends State<AddMenuSheet> {
                     ],
                   ),
                 ),
-                // Form content
                 Expanded(
                   child: SingleChildScrollView(
                     controller: scrollController,
@@ -233,7 +203,6 @@ class _AddMenuSheetState extends State<AddMenuSheet> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Item Name
                           _buildInputField(
                             label: 'Item Name',
                             controller: _itemNameController,
@@ -241,12 +210,8 @@ class _AddMenuSheetState extends State<AddMenuSheet> {
                             readOnly: _isReadOnly,
                           ),
                           const SizedBox(height: 20),
-
-                          // Tags
                           _buildTagsField(),
                           const SizedBox(height: 20),
-
-                          // Price
                           _buildInputField(
                             label: 'Price (\$)',
                             controller: _priceController,
@@ -257,8 +222,6 @@ class _AddMenuSheetState extends State<AddMenuSheet> {
                             readOnly: _isReadOnly,
                           ),
                           const SizedBox(height: 20),
-
-                          // Category
                           _buildDropdownField(
                             label: 'Category',
                             value: _category,
@@ -274,8 +237,6 @@ class _AddMenuSheetState extends State<AddMenuSheet> {
                                     },
                           ),
                           const SizedBox(height: 20),
-
-                          // Min Prep Time
                           _buildInputField(
                             label: 'Min Prep Time (mins)',
                             controller: _minPrepTimeController,
@@ -284,8 +245,6 @@ class _AddMenuSheetState extends State<AddMenuSheet> {
                             readOnly: _isReadOnly,
                           ),
                           const SizedBox(height: 20),
-
-                          // Max Prep Time
                           _buildInputField(
                             label: 'Max Prep Time (mins)',
                             controller: _maxPrepTimeController,
@@ -294,8 +253,6 @@ class _AddMenuSheetState extends State<AddMenuSheet> {
                             readOnly: _isReadOnly,
                           ),
                           const SizedBox(height: 20),
-
-                          // Max Possible Orders
                           _buildInputField(
                             label: 'Max Possible Orders',
                             controller: _maxOrdersController,
@@ -304,8 +261,6 @@ class _AddMenuSheetState extends State<AddMenuSheet> {
                             readOnly: _isReadOnly,
                           ),
                           const SizedBox(height: 20),
-
-                          // Dietary Type
                           _buildDropdownField(
                             label: 'Dietary Type',
                             value: _dietaryType,
@@ -321,8 +276,6 @@ class _AddMenuSheetState extends State<AddMenuSheet> {
                                     },
                           ),
                           const SizedBox(height: 20),
-
-                          // Description
                           _buildInputField(
                             label: 'Description',
                             controller: _descriptionController,
@@ -331,8 +284,6 @@ class _AddMenuSheetState extends State<AddMenuSheet> {
                             readOnly: _isReadOnly,
                           ),
                           const SizedBox(height: 20),
-
-                          // Image Upload Section
                           _buildImageUploadSection(),
                           const SizedBox(height: 30),
                         ],
@@ -340,7 +291,6 @@ class _AddMenuSheetState extends State<AddMenuSheet> {
                     ),
                   ),
                 ),
-                // Bottom buttons
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
@@ -668,7 +618,7 @@ class _AddMenuSheetState extends State<AddMenuSheet> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Drag and drop image here or click to browse',
+                  MenuTexts.imageUploadHint,
                   style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
                   textAlign: TextAlign.center,
                 ),
@@ -678,7 +628,6 @@ class _AddMenuSheetState extends State<AddMenuSheet> {
         const SizedBox(height: 16),
         Row(
           children: [
-            // Current/Sample image
             Container(
               width: 60,
               height: 60,
@@ -714,7 +663,6 @@ class _AddMenuSheetState extends State<AddMenuSheet> {
             ),
             if (!_isReadOnly) ...[
               const SizedBox(width: 16),
-              // Add more images button
               GestureDetector(
                 onTap: () {
                   // Handle image upload

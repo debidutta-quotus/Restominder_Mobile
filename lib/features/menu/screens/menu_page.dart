@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../widgets/app_bar.dart';
+import '../../../common/widgets/app_bar.dart';
 import '../../../common/theme/app_colors.dart';
 import '../controller/menu_controller.dart';
 import '../model/menu_item_model.dart';

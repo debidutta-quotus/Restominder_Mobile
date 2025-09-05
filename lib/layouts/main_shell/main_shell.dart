@@ -6,7 +6,7 @@ import '../../features/orders/screens/orders_page.dart';
 import '../../features/profile/screens/profile_page.dart';
 
 // Import bottom nav widget
-import '../../widgets/bottom_navigation_bar.dart';
+import '../../common/widgets/bottom_navigation_bar.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
