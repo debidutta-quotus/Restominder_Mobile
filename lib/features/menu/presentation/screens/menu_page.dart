@@ -5,10 +5,8 @@ import 'package:provider/provider.dart';
 import '../../../../common/theme/app_colors.dart';
 import '../../../../common/widgets/app_bar.dart';
 import '../../domain/entities/menu_item.dart';
-import '../widgets/add_menu_sheet.dart';
-import '../widgets/category_filter.dart';
-import '../widgets/menu_item_card.dart';
-import '../providers/menu_provider.dart';
+import '../widgets/index.dart';
+import '../providers/index.dart';
 
 class MenuPage extends StatefulWidget {
   const MenuPage({super.key});
