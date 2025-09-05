@@ -4,19 +4,19 @@ import '../common/theme/app_colors.dart';
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final bool showBackButton;
-  final VoidCallback? onMenuPressed;
-  final VoidCallback? onBackPressed;
-  final VoidCallback? onSearchPressed;
-  final VoidCallback? onNotificationPressed;
+  final String? menuPath;
+  final String? searchPath;
+  final String? notificationPath;
+  final String? profilePath;
 
   const CustomAppBar({
     super.key,
-    required this.title,  
+    required this.title,
     this.showBackButton = false,
-    this.onMenuPressed,
-    this.onBackPressed,
-    this.onSearchPressed,
-    this.onNotificationPressed,
+    this.menuPath,
+    this.searchPath,
+    this.notificationPath,
+    this.profilePath,
   });
 
   @override
@@ -31,11 +31,13 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       leading: showBackButton
           ? IconButton(
               icon: const Icon(Icons.arrow_back, color: Colors.black87),
-              onPressed: onBackPressed ?? () => Navigator.of(context).pop(),
+              onPressed: () => Navigator.of(context).pop(),
             )
           : IconButton(
               icon: const Icon(Icons.menu, color: Colors.black87),
-              onPressed: onMenuPressed ?? () {},
+              onPressed: menuPath != null
+                  ? () => Navigator.pushNamed(context, menuPath!)
+                  : () {},
             ),
       title: Text(
         title,
@@ -48,7 +50,9 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       actions: [
         IconButton(
           icon: const Icon(Icons.search, color: Colors.black87),
-          onPressed: onSearchPressed ?? () {},
+          onPressed: searchPath != null
+              ? () => Navigator.pushNamed(context, searchPath!)
+              : () {},
         ),
         Stack(
           alignment: Alignment.topRight,
@@ -58,7 +62,9 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                 Icons.notifications_none,
                 color: Colors.black87,
               ),
-              onPressed: onNotificationPressed ?? () {},
+              onPressed: notificationPath != null
+                  ? () => Navigator.pushNamed(context, notificationPath!)
+                  : () {},
             ),
             const Positioned(
               right: 10,
@@ -67,12 +73,17 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
             ),
           ],
         ),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12),
-          child: CircleAvatar(
-            radius: 18,
-            backgroundImage: NetworkImage(
-              "https://via.placeholder.com/150",
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: GestureDetector(
+            onTap: profilePath != null
+                ? () => Navigator.pushNamed(context, profilePath!)
+                : () {},
+            child: const CircleAvatar(
+              radius: 18,
+              backgroundImage: NetworkImage(
+                "https://res.cloudinary.com/drxnoxxah/image/upload/v1752666601/main-sample.png",
+              ),
             ),
           ),
         ),

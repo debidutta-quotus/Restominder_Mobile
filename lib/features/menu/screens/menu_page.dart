@@ -36,15 +36,10 @@ class _MenuPageState extends State<MenuPage> {
       appBar: CustomAppBar(
         title: "Menu Management",
         showBackButton: false,
-        onMenuPressed: () {
-          // Add menu button action here
-        },
-        onSearchPressed: () {
-          // Add search action here
-        },
-        onNotificationPressed: () {
-          // Add notification action here
-        },
+        menuPath: '/menu',
+        searchPath: '/search',
+        notificationPath: '/notifications',
+        profilePath: '/profile',
       ),
       body: Consumer<MenuControllers>(
         builder: (context, controller, child) {
