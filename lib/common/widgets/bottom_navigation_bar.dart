@@ -26,7 +26,7 @@ class AppBottomNav extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _buildNavItem(Icons.dashboard, "Dashboard", 0),
+            _buildNavItem(Icons.fastfood, "Menu", 0),
             _buildNavItem(Icons.shopping_cart, "Orders", 1),
             _buildNavItem(Icons.settings, "Settings", 2),
             _buildNavItem(Icons.storefront, "+Merchant", 3),
