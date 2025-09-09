@@ -66,13 +66,13 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
                       const SizedBox(width: 4),
                       Flexible(
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
                             color: Colors.blue,
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(500),
                           ),
                           child: Text(
-                            '(${OrdersConstants.getPendingOrders().length})',
+                            '${OrdersConstants.getPendingOrders().length}',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 12,
@@ -99,13 +99,13 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
                       const SizedBox(width: 4),
                       Flexible(
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
                             color: Colors.blue,
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(500),
                           ),
                           child: Text(
-                            '(${OrdersConstants.getAcceptedOrders().length})',
+                            '${OrdersConstants.getAcceptedOrders().length}',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 12,
@@ -132,13 +132,13 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
                       const SizedBox(width: 4),
                       Flexible(
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: Colors.blue,
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(500),
                           ),
                           child: Text(
-                            '(${OrdersConstants.getHistoricalOrders().length})',
+                            '${OrdersConstants.getHistoricalOrders().length}',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 12,
