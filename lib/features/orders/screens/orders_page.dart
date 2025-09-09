@@ -41,14 +41,15 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
         children: [
           Container(
             color: AppColors.background,
+            padding: const EdgeInsets.only(top: 0), // Add top padding to match MenuPage gap
             child: TabBar(
               controller: _tabController,
               labelColor: Colors.blue,
               unselectedLabelColor: Colors.grey,
               indicatorColor: Colors.blue,
               isScrollable: true,
-              tabAlignment: TabAlignment.center, // Center tabs to remove left gap
-              labelPadding: const EdgeInsets.symmetric(horizontal: 10),
+              tabAlignment: TabAlignment.start, // Center tabs to remove left gap
+              labelPadding: const EdgeInsets.symmetric(horizontal: 10), // Match MenuPage
               tabs: [
                 Tab(
                   child: Row(
@@ -179,7 +180,7 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(10),
       itemCount: pendingOrders.length,
       itemBuilder: (context, index) {
         return _buildOrderCard(pendingOrders[index], showActions: true);
@@ -199,7 +200,7 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(10),
       itemCount: acceptedOrders.length,
       itemBuilder: (context, index) {
         return _buildOrderCard(acceptedOrders[index], showActions: false);
@@ -219,7 +220,7 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(10),
       itemCount: historicalOrders.length,
       itemBuilder: (context, index) {
         return _buildOrderCard(historicalOrders[index], showActions: false);
@@ -241,7 +242,7 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
             size: 64,
             color: Colors.grey.shade400,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
           Text(
             title,
             style: TextStyle(

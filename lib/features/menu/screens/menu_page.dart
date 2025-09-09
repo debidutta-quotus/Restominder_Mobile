@@ -153,7 +153,7 @@ class _MenuPageState extends State<MenuPage> with SingleTickerProviderStateMixin
 
           return Column(
             children: [
-              // Category Filter Tabs (removed counts)
+              // Category Filter Tabs
               Container(
                 color: AppColors.background,
                 child: TabBar(
@@ -163,12 +163,42 @@ class _MenuPageState extends State<MenuPage> with SingleTickerProviderStateMixin
                   indicatorColor: Colors.blue,
                   isScrollable: true,
                   tabAlignment: TabAlignment.center,
-                  labelPadding: const EdgeInsets.symmetric(horizontal: 16),
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 10),
                   tabs: controller.categories.map((category) {
+                    final itemCount = category == 'All Categories'
+                        ? controller.menuItems.length
+                        : controller.menuItems.where((item) => item.category == category).length;
                     return Tab(
-                      child: Text(
-                        category,
-                        style: const TextStyle(fontSize: 14),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              category,
+                              style: const TextStyle(fontSize: 14),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.blue,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                '($itemCount)',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     );
                   }).toList(),
