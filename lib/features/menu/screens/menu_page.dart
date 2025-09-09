@@ -15,8 +15,9 @@ class MenuPage extends StatefulWidget {
   State<MenuPage> createState() => _MenuPageState();
 }
 
-class _MenuPageState extends State<MenuPage> {
+class _MenuPageState extends State<MenuPage> with SingleTickerProviderStateMixin {
   late MenuControllers _menuController;
+  TabController? _tabController;
 
   @override
   void initState() {
@@ -25,8 +26,34 @@ class _MenuPageState extends State<MenuPage> {
     _loadMenuItems();
   }
 
+  @override
+  void dispose() {
+    if (_tabController != null) {
+      _tabController!.removeListener(_onTabChanged);
+      _tabController!.dispose();
+    }
+    super.dispose();
+  }
+
   Future<void> _loadMenuItems() async {
     await _menuController.fetchMenuItems();
+    if (mounted) {
+      // Initialize TabController with categories from controller (includes "All Categories")
+      _tabController = TabController(
+        length: _menuController.categories.length,
+        vsync: this,
+      );
+      _tabController!.addListener(_onTabChanged);
+      // Set default to "All Categories" to match controller default
+      _menuController.setSelectedCategory('All Categories');
+      setState(() {});
+    }
+  }
+
+  void _onTabChanged() {
+    if (_tabController == null || _tabController!.indexIsChanging) return;
+    final selectedCategory = _menuController.categories[_tabController!.index];
+    _menuController.setSelectedCategory(selectedCategory);
   }
 
   @override
@@ -43,7 +70,8 @@ class _MenuPageState extends State<MenuPage> {
       ),
       body: Consumer<MenuControllers>(
         builder: (context, controller, child) {
-          if (controller.isLoading && controller.menuItems.isEmpty) {
+          // Show loading indicator while fetching data or if _tabController is not initialized
+          if (controller.isLoading || _tabController == null) {
             return const Center(
               child: CircularProgressIndicator(),
             );
@@ -90,93 +118,118 @@ class _MenuPageState extends State<MenuPage> {
             );
           }
 
+          // Check if we have any menu items at all
+          if (controller.menuItems.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.restaurant_menu,
+                    size: 64,
+                    color: Colors.grey.shade400,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No menu items found',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Add your first menu item to get started',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.shade500,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+
           return Column(
             children: [
-              // Category Filter Tabs
+              // Category Filter Tabs (removed counts)
               Container(
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
                 color: AppColors.background,
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: controller.categories.map((category) {
-                      final isSelected = controller.selectedCategory == category;
-                      return GestureDetector(
-                        onTap: () {
-                          controller.setSelectedCategory(category);
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                category,
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: isSelected ? Colors.blue : Colors.black87,
-                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                ),
-                              ),
-                              if (isSelected)
-                                Container(
-                                  margin: const EdgeInsets.only(top: 4),
-                                  height: 2,
-                                  width: 50,
-                                  color: Colors.blue,
-                                ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
+                child: TabBar(
+                  controller: _tabController,
+                  labelColor: Colors.blue,
+                  unselectedLabelColor: Colors.grey,
+                  indicatorColor: Colors.blue,
+                  isScrollable: true,
+                  tabAlignment: TabAlignment.center,
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 16),
+                  tabs: controller.categories.map((category) {
+                    return Tab(
+                      child: Text(
+                        category,
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    );
+                  }).toList(),
                 ),
               ),
-              // Divider Line
-              const Divider(color: Colors.grey, thickness: 1, height: 0),
               // List of Menu Items
               Expanded(
-                child: RefreshIndicator(
-                  onRefresh: controller.refreshMenuItems,
-                  child: controller.filteredItems.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.restaurant_menu,
-                                size: 64,
-                                color: Colors.grey.shade400,
+                child: TabBarView(
+                  controller: _tabController,
+                  children: controller.categories.map((category) {
+                    // Use controller's filteredItems for "All Categories", specific filtering for others
+                    final categoryItems = category == 'All Categories'
+                        ? controller.menuItems
+                        : controller.menuItems.where((item) => item.category == category).toList();
+                    
+                    return RefreshIndicator(
+                      onRefresh: controller.refreshMenuItems,
+                      child: categoryItems.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.restaurant_menu,
+                                    size: 64,
+                                    color: Colors.grey.shade400,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    category == 'All Categories'
+                                        ? 'No menu items found'
+                                        : 'No items in $category',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    category == 'All Categories'
+                                        ? 'Add your first menu item to get started'
+                                        : 'Add items to this category',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey.shade500,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'No menu items found',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.grey.shade600,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Add your first menu item to get started',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey.shade500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                          itemCount: controller.filteredItems.length,
-                          itemBuilder: (context, index) {
-                            final item = controller.filteredItems[index];
-                            return _buildMenuItemCard(item, controller);
-                          },
-                        ),
+                            )
+                          : ListView.builder(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                              itemCount: categoryItems.length,
+                              itemBuilder: (context, index) {
+                                final item = categoryItems[index];
+                                return _buildMenuItemCard(item, controller);
+                              },
+                            ),
+                    );
+                  }).toList(),
                 ),
               ),
             ],
@@ -209,7 +262,6 @@ class _MenuPageState extends State<MenuPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Top row
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -304,7 +356,6 @@ class _MenuPageState extends State<MenuPage> {
     );
   }
 
-  // Method to show the Add New Item bottom sheet
   void _showAddMenuSheet(BuildContext context, MenuItemModel? item) {
     showModalBottomSheet(
       context: context,
@@ -319,7 +370,6 @@ class _MenuPageState extends State<MenuPage> {
             bool success = false;
 
             if (item == null) {
-              // Add new item
               success = await controller.createMenuItem(
                 name: menuData['name'],
                 description: menuData['description'],
@@ -333,7 +383,6 @@ class _MenuPageState extends State<MenuPage> {
                 images: menuData['images'],
               );
             } else {
-              // Update existing item
               success = await controller.updateMenuItem(
                 id: item.id,
                 name: menuData['name'],
@@ -373,7 +422,6 @@ class _MenuPageState extends State<MenuPage> {
     );
   }
 
-  // Method to show menu options (View, Edit, Delete)
   void _showMenuOptions(BuildContext context, MenuItemModel item) {
     showModalBottomSheet(
       context: context,
@@ -459,7 +507,6 @@ class _MenuPageState extends State<MenuPage> {
     );
   }
 
-  // Method to view menu item details
   void _viewMenuItem(BuildContext context, MenuItemModel item) {
     showModalBottomSheet(
       context: context,
@@ -475,7 +522,6 @@ class _MenuPageState extends State<MenuPage> {
     );
   }
 
-  // Method to delete menu item
   void _deleteMenuItem(BuildContext context, MenuItemModel item) {
     showDialog(
       context: context,
@@ -491,10 +537,8 @@ class _MenuPageState extends State<MenuPage> {
             TextButton(
               onPressed: () async {
                 Navigator.pop(context);
-                
                 final controller = Provider.of<MenuControllers>(context, listen: false);
                 final success = await controller.deleteMenuItem(item.id);
-                
                 if (success) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
