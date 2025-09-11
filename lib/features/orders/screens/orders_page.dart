@@ -1,7 +1,11 @@
+// ignore_for_file: sized_box_for_whitespace, use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import '../../../common/widgets/app_bar.dart';
 import '../../../common/theme/app_colors.dart';
-import '../constants/orders_constants.dart';
+import '../api/orders_api.dart';
+import '../model/order_model.dart';
+import 'order_details_sheet.dart';
 
 class OrdersPage extends StatefulWidget {
   const OrdersPage({super.key});
@@ -12,17 +16,57 @@ class OrdersPage extends StatefulWidget {
 
 class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final OrdersApi _ordersApi = OrdersApi();
+  
+  List<OrderModel> _pendingOrders = [];
+  List<OrderModel> _acceptedOrders = [];
+  List<OrderModel> _historicalOrders = [];
+  
+  bool _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _loadOrders();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadOrders() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+
+      final orders = await _ordersApi.getOrders();
+      
+      setState(() {
+        _pendingOrders = orders.where((order) => order.isPending).toList();
+        _acceptedOrders = orders.where((order) => order.isAccepted).toList();
+        _historicalOrders = orders.where((order) => 
+          order.orderStatus.toLowerCase() == 'dispatched' || 
+          order.orderStatus.toLowerCase() == 'reject' ||
+          order.orderStatus.toLowerCase() == 'completed'
+        ).toList();
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _refreshOrders() async {
+    await _loadOrders();
   }
 
   @override
@@ -37,131 +81,176 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
         notificationPath: '/notifications',
         profilePath: '/profile',
       ),
-      body: Column(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _errorMessage != null
+              ? _buildErrorWidget()
+              : Column(
+                  children: [
+                    Container(
+                      color: AppColors.background,
+                      padding: const EdgeInsets.only(top: 0),
+                      child: TabBar(
+                        controller: _tabController,
+                        labelColor: Colors.blue,
+                        unselectedLabelColor: Colors.grey,
+                        indicatorColor: Colors.blue,
+                        isScrollable: true,
+                        tabAlignment: TabAlignment.start,
+                        labelPadding: const EdgeInsets.symmetric(horizontal: 10),
+                        tabs: [
+                          Tab(
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    'New Orders',
+                                    style: const TextStyle(fontSize: 14),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Flexible(
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(
+                                      '(${_pendingOrders.length})',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Tab(
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    'Accepted Orders',
+                                    style: const TextStyle(fontSize: 14),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Flexible(
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(
+                                      '(${_acceptedOrders.length})',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Tab(
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    'History',
+                                    style: const TextStyle(fontSize: 14),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Flexible(
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(
+                                      '(${_historicalOrders.length})',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: TabBarView(
+                        controller: _tabController,
+                        children: [
+                          _buildNewOrdersTab(),
+                          _buildAcceptedOrdersTab(),
+                          _buildRecentActivityTab(),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+    );
+  }
+
+  Widget _buildErrorWidget() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            color: AppColors.background,
-            padding: const EdgeInsets.only(top: 0), // Add top padding to match MenuPage gap
-            child: TabBar(
-              controller: _tabController,
-              labelColor: Colors.blue,
-              unselectedLabelColor: Colors.grey,
-              indicatorColor: Colors.blue,
-              isScrollable: true,
-              tabAlignment: TabAlignment.start, // Center tabs to remove left gap
-              labelPadding: const EdgeInsets.symmetric(horizontal: 10), // Match MenuPage
-              tabs: [
-                Tab(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          'New Orders',
-                          style: const TextStyle(fontSize: 14),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      Flexible(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: Colors.blue,
-                            borderRadius: BorderRadius.circular(500),
-                          ),
-                          child: Text(
-                            '${OrdersConstants.getPendingOrders().length}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Tab(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          'Accepted Orders',
-                          style: const TextStyle(fontSize: 14),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      Flexible(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: Colors.blue,
-                            borderRadius: BorderRadius.circular(500),
-                          ),
-                          child: Text(
-                            '${OrdersConstants.getAcceptedOrders().length}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Tab(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          'History',
-                          style: const TextStyle(fontSize: 14),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      Flexible(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.blue,
-                            borderRadius: BorderRadius.circular(500),
-                          ),
-                          child: Text(
-                            '${OrdersConstants.getHistoricalOrders().length}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+          Icon(
+            Icons.error_outline,
+            size: 64,
+            color: Colors.red.shade400,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Error loading orders',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Colors.red.shade600,
             ),
           ),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildNewOrdersTab(),
-                _buildAcceptedOrdersTab(),
-                _buildRecentActivityTab(),
-              ],
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Text(
+              _errorMessage ?? 'Unknown error occurred',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+              ),
             ),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: _refreshOrders,
+            child: const Text('Retry'),
           ),
         ],
       ),
@@ -169,9 +258,7 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
   }
 
   Widget _buildNewOrdersTab() {
-    final pendingOrders = OrdersConstants.getPendingOrders();
-    
-    if (pendingOrders.isEmpty) {
+    if (_pendingOrders.isEmpty) {
       return _buildEmptyState(
         icon: Icons.shopping_cart_outlined,
         title: 'No New Orders',
@@ -179,19 +266,20 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(10),
-      itemCount: pendingOrders.length,
-      itemBuilder: (context, index) {
-        return _buildOrderCard(pendingOrders[index], showActions: true);
-      },
+    return RefreshIndicator(
+      onRefresh: _refreshOrders,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(10),
+        itemCount: _pendingOrders.length,
+        itemBuilder: (context, index) {
+          return _buildOrderCard(_pendingOrders[index], showActions: true);
+        },
+      ),
     );
   }
 
   Widget _buildAcceptedOrdersTab() {
-    final acceptedOrders = OrdersConstants.getAcceptedOrders();
-    
-    if (acceptedOrders.isEmpty) {
+    if (_acceptedOrders.isEmpty) {
       return _buildEmptyState(
         icon: Icons.check_circle_outline,
         title: 'No Accepted Orders',
@@ -199,19 +287,22 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(10),
-      itemCount: acceptedOrders.length,
-      itemBuilder: (context, index) {
-        return _buildOrderCard(acceptedOrders[index], showActions: false);
-      },
+    return RefreshIndicator(
+      onRefresh: _refreshOrders,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(10),
+        itemCount: _acceptedOrders.length,
+        itemBuilder: (context, index) {
+          return _buildOrderCard(_acceptedOrders[index], showActions: false, onTap: () {
+            _showOrderDetails(_acceptedOrders[index]);
+          });
+        },
+      ),
     );
   }
 
   Widget _buildRecentActivityTab() {
-    final historicalOrders = OrdersConstants.getHistoricalOrders();
-    
-    if (historicalOrders.isEmpty) {
+    if (_historicalOrders.isEmpty) {
       return _buildEmptyState(
         icon: Icons.history,
         title: 'No Recent Activity',
@@ -219,12 +310,15 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(10),
-      itemCount: historicalOrders.length,
-      itemBuilder: (context, index) {
-        return _buildOrderCard(historicalOrders[index], showActions: false);
-      },
+    return RefreshIndicator(
+      onRefresh: _refreshOrders,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(10),
+        itemCount: _historicalOrders.length,
+        itemBuilder: (context, index) {
+          return _buildOrderCard(_historicalOrders[index], showActions: false);
+        },
+      ),
     );
   }
 
@@ -233,42 +327,49 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
     required String title,
     required String subtitle,
   }) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            size: 64,
-            color: Colors.grey.shade400,
-          ),
-          const SizedBox(height: 10),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey.shade600,
+    return RefreshIndicator(
+      onRefresh: _refreshOrders,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Container(
+          height: MediaQuery.of(context).size.height * 0.6,
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  icon,
+                  size: 64,
+                  color: Colors.grey.shade400,
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade500,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            subtitle,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade500,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildOrderCard(Map<String, dynamic> order, {required bool showActions}) {
-    final orderDetails = order['orderDetails'] as List;
-    final pickupTime = DateTime.parse(order['pickUpTime']);
+  Widget _buildOrderCard(OrderModel order, {required bool showActions, VoidCallback? onTap}) {
     final now = DateTime.now();
-    final timeDifference = pickupTime.difference(now);
+    final timeDifference = order.pickUpTime.difference(now);
     
     String timeText;
     if (timeDifference.isNegative) {
@@ -279,190 +380,193 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
       timeText = '${timeDifference.inHours}h ${timeDifference.inMinutes % 60}m';
     }
 
-    return Card(
-      color: Colors.white,
-      margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    order['orderId'],
+    return GestureDetector(
+      onTap: onTap,
+      child: Card(
+        color: Colors.white,
+        margin: const EdgeInsets.only(bottom: 16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      order.orderId,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  _buildStatusBadge(order.orderStatus),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                timeText,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              'Items',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                            const Spacer(),
+                            Text(
+                              order.totalItems.toString().padLeft(2, '0'),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Text(
+                              'Pickup in',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                            const Spacer(),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.blue,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                timeText,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              ...order.orderDetails.map((item) => Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        item.itemName,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      'x${item.quantity}',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              )),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Total',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    '\$${order.totalAmount.toStringAsFixed(2)}',
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                ),
-                _buildStatusBadge(order['orderStatus']),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              timeText,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade600,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            'Items',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                          const Spacer(),
-                          Text(
-                            orderDetails.fold(0, (sum, item) => sum + (item['quantity'] as int)).toString().padLeft(2, '0'),
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Text(
-                            'Pickup in',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                          const Spacer(),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.blue,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              timeText,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            ...orderDetails.map((item) => Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    item['menuId'] != null 
-                        ? item['menuId']['name'] 
-                        : 'Custom Item',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  Text(
-                    'x${item['quantity']}',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
                 ],
               ),
-            )),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Total',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Text(
-                  '\$${order['totalAmount'].toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+              if (showActions && order.isPending) ...[
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => _rejectOrder(order),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.grey),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        child: const Text(
+                          'Reject',
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () => _acceptOrder(order),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF2D3748),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        child: const Text(
+                          'Accept',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
-            ),
-            if (showActions && order['orderStatus'] == 'pending') ...[
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => _rejectOrder(order['orderId']),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.grey),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      child: const Text(
-                        'Reject',
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => _acceptOrder(order['orderId']),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2D3748),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      child: const Text(
-                        'Accept',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -491,7 +595,7 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
         break;
       default:
         backgroundColor = Colors.grey;
-        displayText = status;
+        displayText = status.toUpperCase();
     }
     
     return Container(
@@ -511,27 +615,81 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
     );
   }
 
-  void _acceptOrder(String orderId) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Order $orderId accepted!'),
-        backgroundColor: Colors.green,
-      ),
-    );
-    setState(() {
-      // This would trigger a rebuild and move the order to accepted tab
-    });
+  Future<void> _acceptOrder(OrderModel order) async {
+    try {
+      await _ordersApi.acceptOrder(order.id);
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Order ${order.orderId} accepted!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      
+      // Refresh orders to update the UI
+      await _refreshOrders();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to accept order: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
-  void _rejectOrder(String orderId) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Order $orderId rejected!'),
-        backgroundColor: Colors.red,
+  Future<void> _rejectOrder(OrderModel order) async {
+    try {
+      await _ordersApi.rejectOrder(order.id);
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Order ${order.orderId} rejected!'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      
+      // Refresh orders to update the UI
+      await _refreshOrders();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to reject order: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _showOrderDetails(OrderModel order) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => OrderDetailsSheet(
+        order: order,
+        onStatusUpdate: (orderId, newStatus) async {
+          try {
+            if (newStatus == 'dispatched') {
+              await _ordersApi.dispatchOrder(orderId);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Order ${order.orderId} dispatched!'),
+                  backgroundColor: Colors.blue,
+                ),
+              );
+              await _refreshOrders();
+            }
+          } catch (e) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Failed to update order: $e'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        },
       ),
     );
-    setState(() {
-      // This would trigger a rebuild and move the order to recent activity
-    });
   }
 }
