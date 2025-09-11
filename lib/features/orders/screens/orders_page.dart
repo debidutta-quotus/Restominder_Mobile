@@ -6,6 +6,7 @@ import '../../../common/theme/app_colors.dart';
 import '../api/orders_api.dart';
 import '../model/order_model.dart';
 import 'order_details_sheet.dart';
+import 'order_history.dart';
 
 class OrdersPage extends StatefulWidget {
   const OrdersPage({super.key});
@@ -310,14 +311,59 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
       );
     }
 
+    // Show only first 10 items
+    final displayOrders = _historicalOrders.take(10).toList();
+
     return RefreshIndicator(
       onRefresh: _refreshOrders,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(10),
-        itemCount: _historicalOrders.length,
-        itemBuilder: (context, index) {
-          return _buildOrderCard(_historicalOrders[index], showActions: false);
-        },
+      child: Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(10),
+              itemCount: displayOrders.length,
+              itemBuilder: (context, index) {
+                return _buildOrderCard(displayOrders[index], showActions: false);
+              },
+            ),
+          ),
+          if (_historicalOrders.length > 10)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border(
+                  top: BorderSide(color: Colors.grey.shade200),
+                ),
+              ),
+              child: ElevatedButton(
+                onPressed: _showFullOrderHistory,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.history, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      'View Full Order History (${_historicalOrders.length} orders)',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -690,6 +736,15 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
           }
         },
       ),
+    );
+  }
+
+  void _showFullOrderHistory() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const OrderHistoryPage(),
     );
   }
 }
