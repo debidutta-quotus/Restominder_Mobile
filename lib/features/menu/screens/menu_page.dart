@@ -251,7 +251,7 @@ class _MenuPageState extends State<MenuPage> with SingleTickerProviderStateMixin
                               ),
                             )
                           : ListView.builder(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                               itemCount: categoryItems.length,
                               itemBuilder: (context, index) {
                                 final item = categoryItems[index];

@@ -31,17 +31,19 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       backgroundColor: AppColors.background,
       elevation: 0,
       leadingWidth: 40,
-      leading: showBackButton
-          ? IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.black87),
-              onPressed: () => Navigator.of(context).pop(),
-            )
-          : IconButton(
-              icon: const Icon(Icons.menu, color: Colors.black87),
-              onPressed: menuPath != null
-                  ? () => Navigator.pushNamed(context, menuPath!)
-                  : () {},
-            ),
+      leading:
+          showBackButton
+              ? IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.black87),
+                onPressed: () => Navigator.of(context).pop(),
+              )
+              : IconButton(
+                icon: const Icon(Icons.menu, color: Colors.black87),
+                onPressed:
+                    menuPath != null
+                        ? () => Navigator.pushNamed(context, menuPath!)
+                        : () {},
+              ),
       title: Text(
         title,
         style: TextStyle(
@@ -53,21 +55,20 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       actions: [
         IconButton(
           icon: const Icon(Icons.search, color: Colors.black87),
-          onPressed: searchPath != null
-              ? () => Navigator.pushNamed(context, searchPath!)
-              : () {},
+          onPressed:
+              searchPath != null
+                  ? () => Navigator.pushNamed(context, searchPath!)
+                  : () {},
         ),
         Stack(
           alignment: Alignment.topRight,
           children: [
             IconButton(
-              icon: const Icon(
-                Icons.notifications_none,
-                color: Colors.black87,
-              ),
-              onPressed: notificationPath != null
-                  ? () => Navigator.pushNamed(context, notificationPath!)
-                  : () {},
+              icon: const Icon(Icons.notifications_none, color: Colors.black87),
+              onPressed:
+                  notificationPath != null
+                      ? () => Navigator.pushNamed(context, notificationPath!)
+                      : () {},
             ),
             const Positioned(
               right: 10,
@@ -81,12 +82,9 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: GestureDetector(
               onTap: () {
-                // Navigate to profile page
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => const ProfilePage(),
-                  ),
+                  MaterialPageRoute(builder: (context) => const ProfilePage()),
                 );
               },
               child: const CircleAvatar(
@@ -96,7 +94,9 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                 ),
               ),
             ),
-          ),
+          )
+        else
+          const SizedBox(width: 4), // extra space when profile is hidden
       ],
     );
   }
