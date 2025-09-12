@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
+import '../../features/profile/screens/profile_page.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final bool showBackButton;
+  final bool showProfile;
   final String? menuPath;
   final String? searchPath;
   final String? notificationPath;
@@ -13,6 +15,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     super.key,
     required this.title,
     this.showBackButton = false,
+    this.showProfile = true,
     this.menuPath,
     this.searchPath,
     this.notificationPath,
@@ -73,20 +76,27 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
             ),
           ],
         ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: GestureDetector(
-            onTap: profilePath != null
-                ? () => Navigator.pushNamed(context, profilePath!)
-                : () {},
-            child: const CircleAvatar(
-              radius: 18,
-              backgroundImage: NetworkImage(
-                "https://res.cloudinary.com/drxnoxxah/image/upload/v1752666601/main-sample.png",
+        if (showProfile)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: GestureDetector(
+              onTap: () {
+                // Navigate to profile page
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ProfilePage(),
+                  ),
+                );
+              },
+              child: const CircleAvatar(
+                radius: 18,
+                backgroundImage: NetworkImage(
+                  "https://res.cloudinary.com/drxnoxxah/image/upload/v1752666601/main-sample.png",
+                ),
               ),
             ),
           ),
-        ),
       ],
     );
   }
