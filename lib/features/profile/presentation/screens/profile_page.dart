@@ -22,9 +22,9 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void initState() {
     super.initState();
-    // Initialize with dummy data for now
+    // Load actual store profile from API
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ProfileProvider>().initializeWithDummyData();
+      context.read<ProfileProvider>().loadStoreProfile();
     });
   }
 

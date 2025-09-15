@@ -1,16 +1,17 @@
+// profile_api.dart (unchanged)
 import '../../../../common/api_manager/api_manager.dart';
 import '../models/store_model.dart';
 
 class ProfileApi {
-  final ApiManager _apiManager = ApiManager.pos();
+  final ApiManager _apiManager = ApiManager.base();
 
   // Get store profile
   Future<StoreModel> getStoreProfile() async {
     try {
-      final response = await _apiManager.getRequest('/store/profile');
+      final response = await _apiManager.getRequest('/store');
       
-      if (response['data'] != null) {
-        return StoreModel.fromJson(response['data']);
+      if (response['success'] == true && response['data'] != null && response['data']['store'] != null) {
+        return StoreModel.fromJson(response['data']['store']);
       } else {
         throw Exception(response['message'] ?? 'Failed to fetch store profile');
       }
@@ -22,10 +23,10 @@ class ProfileApi {
   // Update store profile
   Future<StoreModel> updateStoreProfile(Map<String, dynamic> profileData) async {
     try {
-      final response = await _apiManager.putRequest('/store/profile', profileData);
+      final response = await _apiManager.putRequest('/store', profileData);
       
-      if (response['data'] != null) {
-        return StoreModel.fromJson(response['data']);
+      if (response['success'] == true && response['data'] != null && response['data']['store'] != null) {
+        return StoreModel.fromJson(response['data']['store']);
       } else {
         throw Exception(response['message'] ?? 'Failed to update store profile');
       }
@@ -56,8 +57,8 @@ class ProfileApi {
     try {
       final response = await _apiManager.postRequest('/store/bank-details', bankData);
       
-      if (response['data'] != null) {
-        return StoreModel.fromJson(response['data']);
+      if (response['success'] == true && response['data'] != null && response['data']['store'] != null) {
+        return StoreModel.fromJson(response['data']['store']);
       } else {
         throw Exception(response['message'] ?? 'Failed to add bank details');
       }
@@ -71,8 +72,8 @@ class ProfileApi {
     try {
       final response = await _apiManager.putRequest('/store/bank-details/$bankId', bankData);
       
-      if (response['data'] != null) {
-        return StoreModel.fromJson(response['data']);
+      if (response['success'] == true && response['data'] != null && response['data']['store'] != null) {
+        return StoreModel.fromJson(response['data']['store']);
       } else {
         throw Exception(response['message'] ?? 'Failed to update bank details');
       }

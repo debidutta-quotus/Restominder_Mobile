@@ -30,7 +30,23 @@ class DioClient {
   static void addBaseInterceptors() {
     _baseDio.interceptors.add(
       InterceptorsWrapper(
-        onRequest: (options, handler) {
+        onRequest: (options, handler) async {
+          // Skip token for /login and /register endpoints
+          if (options.path.endsWith('/login') || options.path.endsWith('/register')) {
+            debugPrint('BASE API request (no token): ${options.uri}');
+            return handler.next(options);
+          }
+
+          // Add token for other endpoints
+          final tokenService = TokenService();
+          final token = await tokenService.getToken();
+          if (token != null) {
+            options.headers["Authorization"] = "Bearer $token";
+            options.headers["x-auth-token"] = token;
+            debugPrint('Token attached to BASE request: $token');
+          } else {
+            debugPrint('No token found for BASE request');
+          }
           debugPrint('BASE API request: ${options.uri}');
           return handler.next(options);
         },
@@ -38,8 +54,19 @@ class DioClient {
           debugPrint('BASE API response: ${response.statusCode}');
           return handler.next(response);
         },
-        onError: (DioException e, handler) {
+        onError: (DioException e, handler) async {
           debugPrint('BASE API error: ${e.message}');
+          if (e.response?.statusCode == 401) {
+            debugPrint('Unauthorized: Preparing to redirect to login');
+            await AuthController().logout();
+            // Use a post-frame callback to ensure navigation happens after async
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              final context = navigatorKey.currentContext;
+              if (context != null && context.mounted) {
+                Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+              }
+            });
+          }
           return handler.next(e);
         },
       ),

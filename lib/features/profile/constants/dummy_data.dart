@@ -1,4 +1,5 @@
-// constants/dummy_data.dart
+// This file contains dummy data for testing purposes
+// The actual data now comes from the API endpoint: /store
 
 class DummyData {
   static const Map<String, dynamic> storeData = {
@@ -57,19 +58,6 @@ class DummyData {
           "iban": "US12345678901234567890",
           "swiftCode": "CHASUS33",
           "isPrimary": true,
-          "createdAt": "2025-07-16T05:07:40.021Z",
-          "updateAt": "2025-07-16T05:07:40.021Z"
-        },
-        {
-          "id": "b84d6ccc-945f-5559-c413-76gcbb619c2b",
-          "storeId": "2ae6bc6a-a5d0-4c27-9d53-fc5aa98f3c1a",
-          "bankName": "HDFC Bank",
-          "accountNumber": "9876543210987654",
-          "accountHolder": "Ajay Jena",
-          "ifscCode": "HDFC0001234",
-          "iban": "US98765432109876543210",
-          "swiftCode": "HDFCUS33",
-          "isPrimary": false,
           "createdAt": "2025-07-16T05:07:40.021Z",
           "updateAt": "2025-07-16T05:07:40.021Z"
         }
