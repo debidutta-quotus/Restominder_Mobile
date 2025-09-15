@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 // Import feature pages
 import '../../features/menu/screens/menu_page.dart';
 import '../../features/orders/screens/orders_page.dart';
-import '../../features/profile/screens/profile_page.dart';
+import '../../features/profile/presentation/screens/profile_page.dart';
 
 // Import bottom nav widget
 import '../../common/widgets/bottom_navigation_bar.dart';
