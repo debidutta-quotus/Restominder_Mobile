@@ -3,7 +3,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../common/theme/app_colors.dart';
-import '../../../../common/widgets/app_bar.dart';
 import '../../domain/entities/menu_item.dart';
 import '../widgets/index.dart';
 import '../providers/index.dart';
@@ -29,14 +28,6 @@ class _MenuPageState extends State<MenuPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: CustomAppBar(
-        title: "Menu Management",
-        showBackButton: false,
-        menuPath: '/menu',
-        searchPath: '/search',
-        notificationPath: '/notifications',
-        profilePath: '/profile',
-      ),
       body: Consumer<MenuProvider>(
         builder: (context, provider, child) {
           if (provider.isLoading && provider.menuItems.isEmpty) {

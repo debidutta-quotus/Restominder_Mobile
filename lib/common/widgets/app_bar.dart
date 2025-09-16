@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
-import '../../features/profile/presentation/screens/profile_page.dart';
+import 'package:resto_minder/common/theme/app_colors.dart';
+import 'package:resto_minder/features/profile/presentation/screens/profile_page.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
