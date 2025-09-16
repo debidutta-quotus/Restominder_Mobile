@@ -37,11 +37,6 @@ class _DashboardPageState extends State<DashboardPage> {
       value: _dashboardProvider,
       child: Scaffold(
         backgroundColor: AppColors.background,
-        // appBar: const CustomAppBar(
-        //   title: 'Dashboard',
-        //   showBackButton: false,
-        //   showProfile: true,
-        // ),
         body: RefreshIndicator(
           onRefresh: _onRefresh,
           color: AppColors.primary, // Refresh indicator color
@@ -61,7 +56,10 @@ class _DashboardPageState extends State<DashboardPage> {
                     children: [
                       Text(
                         'Error: ${provider.error}',
-                        style: TextStyle(color: AppColors.accent, fontSize: 16.sp),
+                        style: TextStyle(
+                          color: AppColors.accent,
+                          fontSize: 16.sp,
+                        ),
                       ),
                       SizedBox(height: 16.h),
                       ElevatedButton(
@@ -78,13 +76,12 @@ class _DashboardPageState extends State<DashboardPage> {
               }
 
               return SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(), // Ensure scrollable for RefreshIndicator
-                padding: EdgeInsets.symmetric(horizontal: 8.w),
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.fromLTRB(8.w, 0, 8.w, 80.h),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                    ),
+                    Row(),
                     SizedBox(height: 8.h),
                     Row(
                       children: [
@@ -114,7 +111,9 @@ class _DashboardPageState extends State<DashboardPage> {
                       SalesSummaryChart(data: provider.monthlyRevenue!.data),
                     SizedBox(height: 8.h),
                     if (provider.orderStatistics != null)
-                      OrderStatisticsChart(data: provider.orderStatistics!.data),
+                      OrderStatisticsChart(
+                        data: provider.orderStatistics!.data,
+                      ),
                   ],
                 ),
               );
