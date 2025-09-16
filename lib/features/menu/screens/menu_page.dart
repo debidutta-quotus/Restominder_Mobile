@@ -14,7 +14,8 @@ class MenuPage extends StatefulWidget {
   State<MenuPage> createState() => _MenuPageState();
 }
 
-class _MenuPageState extends State<MenuPage> with SingleTickerProviderStateMixin {
+class _MenuPageState extends State<MenuPage>
+    with SingleTickerProviderStateMixin {
   late MenuControllers _menuController;
   TabController? _tabController;
 
@@ -63,9 +64,7 @@ class _MenuPageState extends State<MenuPage> with SingleTickerProviderStateMixin
         builder: (context, controller, child) {
           // Show loading indicator while fetching data or if _tabController is not initialized
           if (controller.isLoading || _tabController == null) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
+            return const Center(child: CircularProgressIndicator());
           }
 
           if (controller.error != null) {
@@ -90,10 +89,7 @@ class _MenuPageState extends State<MenuPage> with SingleTickerProviderStateMixin
                   const SizedBox(height: 8),
                   Text(
                     controller.error!,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.red.shade600,
-                    ),
+                    style: TextStyle(fontSize: 14, color: Colors.red.shade600),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 16),
@@ -132,10 +128,7 @@ class _MenuPageState extends State<MenuPage> with SingleTickerProviderStateMixin
                   const SizedBox(height: 8),
                   Text(
                     'Add your first menu item to get started',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade500,
-                    ),
+                    style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
                   ),
                 ],
               ),
@@ -155,112 +148,137 @@ class _MenuPageState extends State<MenuPage> with SingleTickerProviderStateMixin
                   isScrollable: true,
                   tabAlignment: TabAlignment.center,
                   labelPadding: const EdgeInsets.symmetric(horizontal: 10),
-                  tabs: controller.categories.map((category) {
-                    final itemCount = category == 'All Categories'
-                        ? controller.menuItems.length
-                        : controller.menuItems.where((item) => item.category == category).length;
-                    return Tab(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Flexible(
-                            child: Text(
-                              category,
-                              style: const TextStyle(fontSize: 14),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Flexible(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.blue,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Text(
-                                '($itemCount)',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
+                  tabs:
+                      controller.categories.map((category) {
+                        final itemCount =
+                            category == 'All Categories'
+                                ? controller.menuItems.length
+                                : controller.menuItems
+                                    .where((item) => item.category == category)
+                                    .length;
+                        return Tab(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  category,
+                                  style: const TextStyle(fontSize: 14),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                overflow: TextOverflow.ellipsis,
                               ),
-                            ),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    '($itemCount)',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
+                        );
+                      }).toList(),
                 ),
               ),
               // List of Menu Items
               Expanded(
                 child: TabBarView(
                   controller: _tabController,
-                  children: controller.categories.map((category) {
-                    // Use controller's filteredItems for "All Categories", specific filtering for others
-                    final categoryItems = category == 'All Categories'
-                        ? controller.menuItems
-                        : controller.menuItems.where((item) => item.category == category).toList();
-                    
-                    return RefreshIndicator(
-                      onRefresh: controller.refreshMenuItems,
-                      child: categoryItems.isEmpty
-                          ? Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.restaurant_menu,
-                                    size: 64,
-                                    color: Colors.grey.shade400,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    category == 'All Categories'
-                                        ? 'No menu items found'
-                                        : 'No items in $category',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.grey.shade600,
+                  children:
+                      controller.categories.map((category) {
+                        // Use controller's filteredItems for "All Categories", specific filtering for others
+                        final categoryItems =
+                            category == 'All Categories'
+                                ? controller.menuItems
+                                : controller.menuItems
+                                    .where((item) => item.category == category)
+                                    .toList();
+
+                        return RefreshIndicator(
+                          onRefresh: controller.refreshMenuItems,
+                          child:
+                              categoryItems.isEmpty
+                                  ? Center(
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.restaurant_menu,
+                                          size: 64,
+                                          color: Colors.grey.shade400,
+                                        ),
+                                        const SizedBox(height: 16),
+                                        Text(
+                                          category == 'All Categories'
+                                              ? 'No menu items found'
+                                              : 'No items in $category',
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.grey.shade600,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          category == 'All Categories'
+                                              ? 'Add your first menu item to get started'
+                                              : 'Add items to this category',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.grey.shade500,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    category == 'All Categories'
-                                        ? 'Add your first menu item to get started'
-                                        : 'Add items to this category',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.grey.shade500,
+                                  )
+                                  : ListView.builder(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 8,
                                     ),
+                                    itemCount: categoryItems.length,
+                                    itemBuilder: (context, index) {
+                                      final item = categoryItems[index];
+                                      return _buildMenuItemCard(
+                                        item,
+                                        controller,
+                                      );
+                                    },
                                   ),
-                                ],
-                              ),
-                            )
-                          : ListView.builder(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                              itemCount: categoryItems.length,
-                              itemBuilder: (context, index) {
-                                final item = categoryItems[index];
-                                return _buildMenuItemCard(item, controller);
-                              },
-                            ),
-                    );
-                  }).toList(),
+                        );
+                      }).toList(),
                 ),
               ),
+           SizedBox(height: 70),
             ],
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddMenuSheet(context, null),
-        backgroundColor: Colors.blue,
-        child: const Icon(Icons.add, color: Colors.white),
+      floatingActionButton: Padding(
+        padding: EdgeInsets.only(
+          bottom: 70,
+        ), // Moves the button upward by 30 logical pixels
+        child: FloatingActionButton(
+          onPressed: () => _showAddMenuSheet(context, null),
+          backgroundColor: Colors.blue,
+          child: const Icon(Icons.add, color: Colors.white),
+        ),
       ),
     );
   }
@@ -340,10 +358,7 @@ class _MenuPageState extends State<MenuPage> with SingleTickerProviderStateMixin
                 activeColor: Colors.green,
               ),
               IconButton(
-                icon: Icon(
-                  Icons.more_vert,
-                  color: Colors.grey[700],
-                ),
+                icon: Icon(Icons.more_vert, color: Colors.grey[700]),
                 onPressed: () => _showMenuOptions(context, item),
               ),
             ],
@@ -387,7 +402,10 @@ class _MenuPageState extends State<MenuPage> with SingleTickerProviderStateMixin
           mode: item == null ? MenuSheetMode.add : MenuSheetMode.edit,
           itemData: item,
           onSave: (menuData) async {
-            final controller = Provider.of<MenuControllers>(context, listen: false);
+            final controller = Provider.of<MenuControllers>(
+              context,
+              listen: false,
+            );
             bool success = false;
 
             if (item == null) {
@@ -424,7 +442,11 @@ class _MenuPageState extends State<MenuPage> with SingleTickerProviderStateMixin
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text(item == null ? 'Item added successfully!' : 'Item updated successfully!'),
+                  content: Text(
+                    item == null
+                        ? 'Item added successfully!'
+                        : 'Item updated successfully!',
+                  ),
                   backgroundColor: Colors.green,
                 ),
               );
@@ -522,9 +544,7 @@ class _MenuPageState extends State<MenuPage> with SingleTickerProviderStateMixin
         ),
       ),
       onTap: onTap,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     );
   }
 
@@ -558,7 +578,10 @@ class _MenuPageState extends State<MenuPage> with SingleTickerProviderStateMixin
             TextButton(
               onPressed: () async {
                 Navigator.pop(context);
-                final controller = Provider.of<MenuControllers>(context, listen: false);
+                final controller = Provider.of<MenuControllers>(
+                  context,
+                  listen: false,
+                );
                 final success = await controller.deleteMenuItem(item.id);
                 if (success) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -570,7 +593,9 @@ class _MenuPageState extends State<MenuPage> with SingleTickerProviderStateMixin
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(controller.error ?? 'Failed to delete item'),
+                      content: Text(
+                        controller.error ?? 'Failed to delete item',
+                      ),
                       backgroundColor: Colors.red,
                     ),
                   );
