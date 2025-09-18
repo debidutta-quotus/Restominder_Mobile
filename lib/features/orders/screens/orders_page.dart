@@ -654,7 +654,7 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
 
   Future<void> _acceptOrder(OrderModel order) async {
     try {
-      await _ordersApi.acceptOrder(order.id);
+      await _ordersApi.acceptOrder(order.orderId);
       
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -677,7 +677,7 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
 
   Future<void> _rejectOrder(OrderModel order) async {
     try {
-      await _ordersApi.rejectOrder(order.id);
+      await _ordersApi.rejectOrder(order.orderId);
       
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

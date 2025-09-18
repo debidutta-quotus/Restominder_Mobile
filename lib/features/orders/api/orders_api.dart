@@ -1,5 +1,6 @@
 import '../../../common/api_manager/api_manager.dart';
 import '../model/order_model.dart';
+import 'dart:convert';
 
 class OrdersApi {
   final ApiManager _apiManager = ApiManager.pos();
@@ -29,7 +30,9 @@ class OrdersApi {
         final List<dynamic> ordersJson = response['data'];
         return ordersJson.map((json) => OrderModel.fromJson(json)).toList();
       } else {
-        throw Exception(response['message'] ?? 'Failed to fetch orders by status');
+        throw Exception(
+          response['message'] ?? 'Failed to fetch orders by status',
+        );
       }
     } catch (e) {
       throw Exception('Failed to fetch orders by status: $e');
@@ -67,16 +70,23 @@ class OrdersApi {
   }
 
   // Update order status
+
   Future<OrderModel> updateOrderStatus(String orderId, String status) async {
     try {
-      final response = await _apiManager.putRequest('/order/$orderId', {
-        'orderStatus': status,
-      });
+      final response = jsonDecode(
+        await _apiManager.putRequest('/order/$orderId', {
+          'orderStatus': status,
+        }),
+      );
 
-      if (response['order'] != null) {
+      if (response['order'] != null &&
+          response['order'] is Map<String, dynamic>) {
         return OrderModel.fromJson(response['order']);
       } else {
-        throw Exception(response['message'] ?? 'Failed to update order status');
+        throw Exception(
+          response['message'] ??
+              'Failed to update order status: Invalid response format',
+        );
       }
     } catch (e) {
       throw Exception('Failed to update order status: $e');
@@ -86,7 +96,7 @@ class OrdersApi {
   // Accept order
   Future<OrderModel> acceptOrder(String orderId) async {
     try {
-      return await updateOrderStatus(orderId, 'ready');
+      return await updateOrderStatus(orderId, 'accepted');
     } catch (e) {
       throw Exception('Failed to accept order: $e');
     }
