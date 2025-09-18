@@ -1,6 +1,6 @@
 import '../../../common/api_manager/api_manager.dart';
 import '../model/order_model.dart';
-import 'dart:convert';
+// import 'dart:convert';
 
 class OrdersApi {
   final ApiManager _apiManager = ApiManager.pos();
@@ -49,7 +49,7 @@ class OrdersApi {
     }
   }
 
-  // Get accepted/ready orders
+  // Get accepted/ready orders (accept, preparing, ready)
   Future<List<OrderModel>> getAcceptedOrders() async {
     try {
       final allOrders = await getOrders();
@@ -69,23 +69,22 @@ class OrdersApi {
     }
   }
 
-  // Update order status
-
-  Future<OrderModel> updateOrderStatus(String orderId, String status) async {
+  // Update order status - Main method for all status changes
+  Future<Map<String, dynamic>> updateOrderStatus(String orderId, String status) async {
     try {
-      final response = jsonDecode(
-        await _apiManager.putRequest('/order/$orderId', {
-          'orderStatus': status,
-        }),
-      );
+      final response = await _apiManager.putRequest('/order/$orderId', {
+        'orderStatus': status,
+      });
 
-      if (response['order'] != null &&
-          response['order'] is Map<String, dynamic>) {
-        return OrderModel.fromJson(response['order']);
+      if (response['success'] == true) {
+        return {
+          'success': true,
+          'order': OrderModel.fromJson(response['order']),
+          'message': response['message'] ?? 'Order status updated successfully'
+        };
       } else {
         throw Exception(
-          response['message'] ??
-              'Failed to update order status: Invalid response format',
+          response['message'] ?? 'Failed to update order status: Invalid response format',
         );
       }
     } catch (e) {
@@ -93,17 +92,17 @@ class OrdersApi {
     }
   }
 
-  // Accept order
-  Future<OrderModel> acceptOrder(String orderId) async {
+  // Accept order (pending -> accept)
+  Future<Map<String, dynamic>> acceptOrder(String orderId) async {
     try {
-      return await updateOrderStatus(orderId, 'accepted');
+      return await updateOrderStatus(orderId, 'accept');
     } catch (e) {
       throw Exception('Failed to accept order: $e');
     }
   }
 
-  // Reject order
-  Future<OrderModel> rejectOrder(String orderId) async {
+  // Reject order (pending -> reject)
+  Future<Map<String, dynamic>> rejectOrder(String orderId) async {
     try {
       return await updateOrderStatus(orderId, 'reject');
     } catch (e) {
@@ -111,8 +110,26 @@ class OrdersApi {
     }
   }
 
-  // Dispatch order
-  Future<OrderModel> dispatchOrder(String orderId) async {
+  // Start preparing (accept -> preparing)
+  Future<Map<String, dynamic>> startPreparing(String orderId) async {
+    try {
+      return await updateOrderStatus(orderId, 'preparing');
+    } catch (e) {
+      throw Exception('Failed to start preparing order: $e');
+    }
+  }
+
+  // Mark as ready (preparing -> ready)
+  Future<Map<String, dynamic>> markAsReady(String orderId) async {
+    try {
+      return await updateOrderStatus(orderId, 'ready');
+    } catch (e) {
+      throw Exception('Failed to mark order as ready: $e');
+    }
+  }
+
+  // Dispatch order (ready -> dispatched)
+  Future<Map<String, dynamic>> dispatchOrder(String orderId) async {
     try {
       return await updateOrderStatus(orderId, 'dispatched');
     } catch (e) {
@@ -154,7 +171,6 @@ class OrdersApi {
   Future<bool> deleteOrder(String orderId) async {
     try {
       final response = await _apiManager.deleteRequest('/order/$orderId');
-
       return response['success'] == true;
     } catch (e) {
       throw Exception('Failed to delete order: $e');

@@ -7,6 +7,7 @@ import '../api/orders_api.dart';
 import '../model/order_model.dart';
 import 'order_details_sheet.dart';
 import 'order_history.dart';
+import 'dart:async';
 
 class OrdersPage extends StatefulWidget {
   const OrdersPage({super.key});
@@ -25,37 +26,54 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
   
   bool _isLoading = true;
   String? _errorMessage;
+  Timer? _refreshTimer;
+
+  // Loading states for individual orders
+  // ignore: prefer_final_fields
+  Set<String> _loadingOrders = {};
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _loadOrders();
+    _startAutoRefresh();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _refreshTimer?.cancel();
     super.dispose();
   }
 
-  Future<void> _loadOrders() async {
+  // Auto refresh every 5 seconds like web version
+  void _startAutoRefresh() {
+    _refreshTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (mounted) {
+        _loadOrders(showLoading: false);
+      }
+    });
+  }
+
+  Future<void> _loadOrders({bool showLoading = true}) async {
     try {
-      setState(() {
-        _isLoading = true;
-        _errorMessage = null;
-      });
+      if (showLoading) {
+        setState(() {
+          _isLoading = true;
+          _errorMessage = null;
+        });
+      }
 
       final orders = await _ordersApi.getOrders();
+      
+      // Sort orders by pickup time (latest first) like web version
+      orders.sort((a, b) => b.pickUpTime.compareTo(a.pickUpTime));
       
       setState(() {
         _pendingOrders = orders.where((order) => order.isPending).toList();
         _acceptedOrders = orders.where((order) => order.isAccepted).toList();
-        _historicalOrders = orders.where((order) => 
-          order.orderStatus.toLowerCase() == 'dispatched' || 
-          order.orderStatus.toLowerCase() == 'reject' ||
-          order.orderStatus.toLowerCase() == 'completed'
-        ).toList();
+        _historicalOrders = orders.where((order) => order.isHistorical).toList();
         _isLoading = false;
       });
     } catch (e) {
@@ -68,6 +86,63 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
 
   Future<void> _refreshOrders() async {
     await _loadOrders();
+  }
+
+  // Handle order status changes - matching web functionality
+  Future<void> _handleStatusChange(OrderModel order, String newStatus) async {
+    if (_loadingOrders.contains(order.orderId)) return;
+
+    setState(() {
+      _loadingOrders.add(order.orderId);
+    });
+
+    try {
+      final response = await _ordersApi.updateOrderStatus(order.orderId, newStatus);
+      
+      if (response['success'] == true) {
+        // Show success message based on status
+        String message = _getStatusChangeMessage(order.orderId, newStatus);
+        _showSnackBar(message, Colors.green);
+        
+        // Refresh orders to update UI
+        await _loadOrders(showLoading: false);
+      } else {
+        _showSnackBar('Failed to update order status', Colors.red);
+      }
+    } catch (e) {
+      _showSnackBar('Error updating order: $e', Colors.red);
+    } finally {
+      setState(() {
+        _loadingOrders.remove(order.orderId);
+      });
+    }
+  }
+
+  String _getStatusChangeMessage(String orderId, String status) {
+    switch (status.toLowerCase()) {
+      case 'accept':
+        return 'Order $orderId has been accepted';
+      case 'preparing':
+        return 'Order $orderId is now being prepared';
+      case 'ready':
+        return 'Order $orderId preparation is complete';
+      case 'dispatched':
+        return 'Order $orderId has been dispatched';
+      case 'reject':
+        return 'Order $orderId has been rejected';
+      default:
+        return 'Order $orderId status updated';
+    }
+  }
+
+  void _showSnackBar(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color,
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   @override
@@ -303,7 +378,7 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
       );
     }
 
-    // Show only first 10 items
+    // Show only first 10 items like web version
     final displayOrders = _historicalOrders.take(10).toList();
 
     return RefreshIndicator(
@@ -396,7 +471,6 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
                   ),
                 ),
               ],
-
             ),
           ),
         ),
@@ -405,17 +479,7 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
   }
 
   Widget _buildOrderCard(OrderModel order, {required bool showActions, VoidCallback? onTap}) {
-    final now = DateTime.now();
-    final timeDifference = order.pickUpTime.difference(now);
-    
-    String timeText;
-    if (timeDifference.isNegative) {
-      timeText = 'Just now';
-    } else if (timeDifference.inMinutes < 60) {
-      timeText = '${timeDifference.inMinutes} Mins';
-    } else {
-      timeText = '${timeDifference.inHours}h ${timeDifference.inMinutes % 60}m';
-    }
+    final isLoading = _loadingOrders.contains(order.orderId);
 
     return GestureDetector(
       onTap: onTap,
@@ -447,7 +511,7 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
               ),
               const SizedBox(height: 4),
               Text(
-                timeText,
+                order.timeSinceOrder,
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.grey.shade600,
@@ -497,7 +561,7 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
-                                timeText,
+                                order.pickupTimeText,
                                 style: const TextStyle(
                                   fontSize: 12,
                                   color: Colors.white,
@@ -562,7 +626,7 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () => _rejectOrder(order),
+                        onPressed: isLoading ? null : () => _handleStatusChange(order, 'reject'),
                         style: OutlinedButton.styleFrom(
                           side: const BorderSide(color: Colors.grey),
                           shape: RoundedRectangleBorder(
@@ -570,19 +634,25 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
                           ),
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
-                        child: const Text(
-                          'Reject',
-                          style: TextStyle(
-                            color: Colors.grey,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
+                        child: isLoading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Text(
+                                'Reject',
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: () => _acceptOrder(order),
+                        onPressed: isLoading ? null : () => _handleStatusChange(order, 'accept'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF2D3748),
                           shape: RoundedRectangleBorder(
@@ -590,13 +660,22 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
                           ),
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
-                        child: const Text(
-                          'Accept',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
+                        child: isLoading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              )
+                            : const Text(
+                                'Accept',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
                       ),
                     ),
                   ],
@@ -618,12 +697,20 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
         backgroundColor = Colors.orange;
         displayText = 'Pending';
         break;
+      case 'accept':
+        backgroundColor = Colors.blue;
+        displayText = 'Accepted';
+        break;
+      case 'preparing':
+        backgroundColor = Colors.purple;
+        displayText = 'Preparing';
+        break;
       case 'ready':
         backgroundColor = Colors.green;
         displayText = 'Ready';
         break;
       case 'dispatched':
-        backgroundColor = Colors.blue;
+        backgroundColor = Colors.teal;
         displayText = 'Dispatched';
         break;
       case 'reject':
@@ -652,52 +739,6 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
     );
   }
 
-  Future<void> _acceptOrder(OrderModel order) async {
-    try {
-      await _ordersApi.acceptOrder(order.id);
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Order ${order.orderId} accepted!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      
-      // Refresh orders to update the UI
-      await _refreshOrders();
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to accept order: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
-  Future<void> _rejectOrder(OrderModel order) async {
-    try {
-      await _ordersApi.rejectOrder(order.id);
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Order ${order.orderId} rejected!'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      
-      // Refresh orders to update the UI
-      await _refreshOrders();
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to reject order: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
   void _showOrderDetails(OrderModel order) {
     showModalBottomSheet(
       context: context,
@@ -706,25 +747,7 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
       builder: (context) => OrderDetailsSheet(
         order: order,
         onStatusUpdate: (orderId, newStatus) async {
-          try {
-            if (newStatus == 'dispatched') {
-              await _ordersApi.dispatchOrder(orderId);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Order ${order.orderId} dispatched!'),
-                  backgroundColor: Colors.blue,
-                ),
-              );
-              await _refreshOrders();
-            }
-          } catch (e) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Failed to update order: $e'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
+          await _handleStatusChange(order, newStatus);
         },
       ),
     );

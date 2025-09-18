@@ -18,6 +18,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
   List<OrderModel> _filteredOrders = [];
   bool _isLoading = true;
   String? _errorMessage;
+  String _statusFilter = 'all'; // all, dispatched, reject
 
   @override
   void initState() {
@@ -40,18 +41,12 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
       });
 
       final orders = await _ordersApi.getOrders();
-      final historicalOrders =
-          orders
-              .where(
-                (order) =>
-                    order.orderStatus.toLowerCase() == 'dispatched' ||
-                    order.orderStatus.toLowerCase() == 'reject' ||
-                    order.orderStatus.toLowerCase() == 'completed',
-              )
-              .toList();
+      final historicalOrders = orders
+          .where((order) => order.isHistorical)
+          .toList();
 
-      // Sort by order ID or creation date if available
-      historicalOrders.sort((a, b) => b.orderId.compareTo(a.orderId));
+      // Sort by pickup time (latest first) like web version
+      historicalOrders.sort((a, b) => b.pickUpTime.compareTo(a.pickUpTime));
 
       setState(() {
         _allHistoricalOrders = historicalOrders;
@@ -69,20 +64,31 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
   void _filterOrders() {
     final query = _searchController.text.toLowerCase();
     setState(() {
-      if (query.isEmpty) {
-        _filteredOrders = _allHistoricalOrders;
-      } else {
-        _filteredOrders =
-            _allHistoricalOrders.where((order) {
-              return order.orderId.toLowerCase().contains(query) ||
-                  order.customerDetails.name.toLowerCase().contains(query) ||
-                  order.customerDetails.phone.contains(query) ||
-                  order.orderDetails.any(
-                    (item) => item.itemName.toLowerCase().contains(query),
-                  );
-            }).toList();
-      }
+      _filteredOrders = _allHistoricalOrders.where((order) {
+        // Apply search filter
+        final matchesSearch = query.isEmpty ||
+            order.orderId.toLowerCase().contains(query) ||
+            order.customerDetails.name.toLowerCase().contains(query) ||
+            order.customerDetails.phone.contains(query) ||
+            order.orderDetails.any(
+              (item) => item.itemName.toLowerCase().contains(query),
+            );
+
+        // Apply status filter
+        final matchesStatus = _statusFilter == 'all' ||
+            (_statusFilter == 'dispatched' && order.isDispatched) ||
+            (_statusFilter == 'reject' && order.isRejected);
+
+        return matchesSearch && matchesStatus;
+      }).toList();
     });
+  }
+
+  void _setStatusFilter(String filter) {
+    setState(() {
+      _statusFilter = filter;
+    });
+    _filterOrders();
   }
 
   Future<void> _refreshOrders() async {
@@ -167,33 +173,59 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                 ),
               ),
 
-              const SizedBox(height: 16),
+              // Filter buttons
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    _buildFilterChip('All', 'all'),
+                    const SizedBox(width: 8),
+                    _buildFilterChip('Completed', 'dispatched'),
+                    const SizedBox(width: 8),
+                    _buildFilterChip('Rejected', 'reject'),
+                  ],
+                ),
+              ),
 
               // Content
               Expanded(
-                child:
-                    _isLoading
-                        ? const Center(child: CircularProgressIndicator())
-                        : _errorMessage != null
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _errorMessage != null
                         ? _buildErrorWidget()
                         : _filteredOrders.isEmpty
-                        ? _buildEmptyState()
-                        : RefreshIndicator(
-                          onRefresh: _refreshOrders,
-                          child: ListView.builder(
-                            controller: scrollController,
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            itemCount: _filteredOrders.length,
-                            itemBuilder: (context, index) {
-                              return _buildOrderCard(_filteredOrders[index]);
-                            },
-                          ),
-                        ),
+                            ? _buildEmptyState()
+                            : RefreshIndicator(
+                                onRefresh: _refreshOrders,
+                                child: ListView.builder(
+                                  controller: scrollController,
+                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                  itemCount: _filteredOrders.length,
+                                  itemBuilder: (context, index) {
+                                    return _buildOrderCard(_filteredOrders[index]);
+                                  },
+                                ),
+                              ),
               ),
             ],
           ),
         );
       },
+    );
+  }
+
+  Widget _buildFilterChip(String label, String value) {
+    final isSelected = _statusFilter == value;
+    return FilterChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (selected) {
+        if (selected) {
+          _setStatusFilter(value);
+        }
+      },
+      selectedColor: Colors.blue.shade100,
+      checkmarkColor: Colors.blue.shade700,
     );
   }
 
@@ -236,7 +268,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
           Icon(Icons.history, size: 64, color: Colors.grey.shade400),
           const SizedBox(height: 16),
           Text(
-            _searchController.text.isNotEmpty
+            _searchController.text.isNotEmpty || _statusFilter != 'all'
                 ? 'No orders found'
                 : 'No order history',
             style: TextStyle(
@@ -247,18 +279,19 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            _searchController.text.isNotEmpty
-                ? 'Try adjusting your search terms'
+            _searchController.text.isNotEmpty || _statusFilter != 'all'
+                ? 'Try adjusting your search or filters'
                 : 'Completed orders will appear here',
             style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
           ),
-          if (_searchController.text.isNotEmpty) ...[
+          if (_searchController.text.isNotEmpty || _statusFilter != 'all') ...[
             const SizedBox(height: 16),
             TextButton(
               onPressed: () {
                 _searchController.clear();
+                _setStatusFilter('all');
               },
-              child: const Text('Clear search'),
+              child: const Text('Clear filters'),
             ),
           ],
         ],
@@ -366,6 +399,14 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                           ),
                         ],
                       ),
+                      const SizedBox(height: 4),
+                      Text(
+                        order.timeSinceOrder,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -373,7 +414,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
             ),
             const SizedBox(height: 12),
 
-            // Order items (show first 2-3 items)
+            // Order items (show first 3 items)
             ...order.orderDetails
                 .take(3)
                 .map(
@@ -445,16 +486,12 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
 
     switch (status.toLowerCase()) {
       case 'dispatched':
-        backgroundColor = Colors.blue;
-        displayText = 'Dispatched';
+        backgroundColor = Colors.teal;
+        displayText = 'Completed';
         break;
       case 'reject':
         backgroundColor = Colors.red;
         displayText = 'Rejected';
-        break;
-      case 'completed':
-        backgroundColor = Colors.green;
-        displayText = 'Completed';
         break;
       default:
         backgroundColor = Colors.grey;

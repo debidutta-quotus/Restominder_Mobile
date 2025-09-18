@@ -43,12 +43,20 @@ class OrderDetailsSheet extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Order ID: ${order.orderId}',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Order ID: ${order.orderId}',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            _buildStatusBadge(),
+                          ],
                         ),
                         const SizedBox(height: 4),
                         Row(
@@ -60,14 +68,12 @@ class OrderDetailsSheet extends StatelessWidget {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              _getPickupTimeText(),
+                              'Pickup in: ${order.pickupTimeText}',
                               style: TextStyle(
                                 fontSize: 13,
                                 color: Colors.grey.shade600,
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            _buildStatusBadge(),
                           ],
                         ),
                       ],
@@ -337,7 +343,7 @@ class OrderDetailsSheet extends StatelessWidget {
                     Expanded(
                       flex: 2,
                       child: Text(
-                        '\$${(item.price * item.quantity).toStringAsFixed(2)}',
+                        '\$${item.totalPrice.toStringAsFixed(2)}',
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -395,12 +401,20 @@ class OrderDetailsSheet extends StatelessWidget {
         backgroundColor = Colors.orange;
         displayText = 'Pending';
         break;
+      case 'accept':
+        backgroundColor = Colors.blue;
+        displayText = 'Accepted';
+        break;
+      case 'preparing':
+        backgroundColor = Colors.purple;
+        displayText = 'Preparing';
+        break;
       case 'ready':
         backgroundColor = Colors.green;
         displayText = 'Ready';
         break;
       case 'dispatched':
-        backgroundColor = Colors.blue;
+        backgroundColor = Colors.teal;
         displayText = 'Dispatched';
         break;
       case 'reject':
@@ -429,53 +443,54 @@ class OrderDetailsSheet extends StatelessWidget {
     );
   }
 
-  String _getPickupTimeText() {
-    final now = DateTime.now();
-    final timeDifference = order.pickUpTime.difference(now);
-    
-    if (timeDifference.isNegative) {
-      return 'ASAP';
-    } else if (timeDifference.inMinutes < 60) {
-      return '${timeDifference.inMinutes} Mins';
-    } else {
-      return '${timeDifference.inHours}h ${timeDifference.inMinutes % 60}m';
-    }
-  }
-
   bool _shouldShowActionButton() {
-    return order.orderStatus.toLowerCase() == 'ready';
+    // Show action button for orders that can progress to next status
+    return order.canProgress && !order.isHistorical;
   }
 
   String _getActionButtonText() {
     switch (order.orderStatus.toLowerCase()) {
+      case 'accept':
+        return 'Start Preparing';
+      case 'preparing':
+        return 'Mark as Ready';
       case 'ready':
-        return 'Ready To Dispatch';
+        return 'Dispatch Order';
       default:
-        return 'View All History';
+        return 'Update Status';
     }
   }
 
   IconData _getActionButtonIcon() {
     switch (order.orderStatus.toLowerCase()) {
+      case 'accept':
+        return Icons.restaurant;
+      case 'preparing':
+        return Icons.check_circle;
       case 'ready':
         return Icons.local_shipping;
       default:
-        return Icons.history;
+        return Icons.update;
     }
   }
 
   Color _getActionButtonColor() {
     switch (order.orderStatus.toLowerCase()) {
+      case 'accept':
+        return Colors.purple;
+      case 'preparing':
+        return Colors.green;
       case 'ready':
-        return Colors.blue;
+        return Colors.teal;
       default:
-        return Colors.grey.shade600;
+        return Colors.blue;
     }
   }
 
   void _handleStatusUpdate(BuildContext context) {
-    if (order.orderStatus.toLowerCase() == 'ready') {
-      onStatusUpdate?.call(order.id, 'dispatched');
+    final nextStatus = order.nextStatus;
+    if (nextStatus != null && onStatusUpdate != null) {
+      onStatusUpdate!(order.orderId, nextStatus);
       Navigator.pop(context);
     }
   }

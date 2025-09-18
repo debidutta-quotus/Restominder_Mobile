@@ -7,6 +7,8 @@ class OrderModel {
   final double totalAmount;
   final DateTime pickUpTime;
   final CustomerDetailsModel customerDetails;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
 
   OrderModel({
     required this.id,
@@ -17,6 +19,8 @@ class OrderModel {
     required this.totalAmount,
     required this.pickUpTime,
     required this.customerDetails,
+    this.createdAt,
+    this.updatedAt,
   });
 
   factory OrderModel.fromJson(Map<String, dynamic> json) {
@@ -32,6 +36,8 @@ class OrderModel {
       totalAmount: (json['totalAmount'] as num?)?.toDouble() ?? 0.0,
       pickUpTime: DateTime.parse(json['pickUpTime'] ?? DateTime.now().toIso8601String()),
       customerDetails: CustomerDetailsModel.fromJson(json['customerDetails'] ?? {}),
+      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
+      updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : null,
     );
   }
 
@@ -45,17 +51,82 @@ class OrderModel {
       'totalAmount': totalAmount,
       'pickUpTime': pickUpTime.toIso8601String(),
       'customerDetails': customerDetails.toJson(),
+      'createdAt': createdAt?.toIso8601String(),
+      'updatedAt': updatedAt?.toIso8601String(),
     };
   }
 
-  // Helper methods for order status
+  // Helper methods for order status - matching web implementation
   bool get isPending => orderStatus.toLowerCase() == 'pending';
-  bool get isAccepted => orderStatus.toLowerCase() == 'ready';
-  bool get isHistorical => orderStatus.toLowerCase() == 'reject' || 
-                          orderStatus.toLowerCase() == 'completed' ||
-                          orderStatus.toLowerCase() == 'dispatched';
+  bool get isAccepted => ['accept', 'preparing', 'ready'].contains(orderStatus.toLowerCase());
+  bool get isHistorical => ['reject', 'dispatched'].contains(orderStatus.toLowerCase());
+  
+  // Specific status checks
+  bool get isAcceptStatus => orderStatus.toLowerCase() == 'accept';
+  bool get isPreparing => orderStatus.toLowerCase() == 'preparing';
+  bool get isReady => orderStatus.toLowerCase() == 'ready';
+  bool get isDispatched => orderStatus.toLowerCase() == 'dispatched';
+  bool get isRejected => orderStatus.toLowerCase() == 'reject';
   
   int get totalItems => orderDetails.fold(0, (sum, item) => sum + item.quantity);
+
+  // Get next possible status based on current status
+  String? get nextStatus {
+    switch (orderStatus.toLowerCase()) {
+      case 'pending':
+        return 'accept'; // or 'reject'
+      case 'accept':
+        return 'preparing';
+      case 'preparing':
+        return 'ready';
+      case 'ready':
+        return 'dispatched';
+      default:
+        return null; // No next status for dispatched/rejected
+    }
+  }
+
+  // Check if order can be progressed to next status
+  bool get canProgress {
+    return nextStatus != null && !isHistorical;
+  }
+
+  // Get time difference for pickup
+  String get pickupTimeText {
+    final now = DateTime.now();
+    final difference = pickUpTime.difference(now);
+    
+    if (difference.isNegative) {
+      return 'ASAP';
+    } else if (difference.inMinutes < 60) {
+      return '${difference.inMinutes} mins';
+    } else {
+      final hours = difference.inHours;
+      final minutes = difference.inMinutes % 60;
+      if (minutes == 0) {
+        return '${hours}h';
+      }
+      return '${hours}h ${minutes}m';
+    }
+  }
+
+  // Get time since order was placed
+  String get timeSinceOrder {
+    if (createdAt == null) return 'Unknown';
+    
+    final now = DateTime.now();
+    final difference = now.difference(createdAt!);
+    
+    if (difference.inMinutes < 1) {
+      return 'Just now';
+    } else if (difference.inMinutes < 60) {
+      return '${difference.inMinutes} minutes ago';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours} hours ago';
+    } else {
+      return '${difference.inDays} days ago';
+    }
+  }
 }
 
 class OrderDetailModel {
@@ -90,6 +161,7 @@ class OrderDetailModel {
   }
 
   String get itemName => menuId?.name ?? 'Custom Item';
+  double get totalPrice => price * quantity;
 }
 
 class CustomerDetailsModel {
@@ -120,7 +192,7 @@ class CustomerDetailsModel {
   }
 }
 
-// Basic MenuItemModel for order details (if not already defined)
+// Menu Item Model for order details
 class MenuItemModel {
   final String id;
   final String name;
