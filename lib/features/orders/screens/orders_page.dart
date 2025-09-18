@@ -1,7 +1,7 @@
 // ignore_for_file: sized_box_for_whitespace, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
-import '../../../common/widgets/app_bar.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../common/theme/app_colors.dart';
 import '../api/orders_api.dart';
 import '../model/order_model.dart';
@@ -74,14 +74,6 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: CustomAppBar(
-        title: "Orders Management",
-        showBackButton: false,
-        menuPath: '/menu',
-        searchPath: '/search',
-        notificationPath: '/notifications',
-        profilePath: '/profile',
-      ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _errorMessage != null
@@ -270,7 +262,7 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
     return RefreshIndicator(
       onRefresh: _refreshOrders,
       child: ListView.builder(
-        padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.fromLTRB(10, 10, 10, 70),
         itemCount: _pendingOrders.length,
         itemBuilder: (context, index) {
           return _buildOrderCard(_pendingOrders[index], showActions: true);
@@ -330,12 +322,9 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
           if (_historicalOrders.length > 10)
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border(
-                  top: BorderSide(color: Colors.grey.shade200),
-                ),
+                color: Colors.transparent
               ),
               child: ElevatedButton(
                 onPressed: _showFullOrderHistory,
@@ -363,6 +352,7 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
                 ),
               ),
             ),
+          SizedBox(height: 75.h),
         ],
       ),
     );
@@ -406,6 +396,7 @@ class _OrdersPageState extends State<OrdersPage> with SingleTickerProviderStateM
                   ),
                 ),
               ],
+
             ),
           ),
         ),

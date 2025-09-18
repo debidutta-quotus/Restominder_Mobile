@@ -7,10 +7,16 @@ import '../../../../common/theme/app_colors.dart';
 
 class OrderStatisticsChart extends StatelessWidget {
   final OrderStatisticsData data;
+  final Function(String) onTimeRangeChanged;
+  final String currentTimeRange;
+  final bool isLoading;
 
   const OrderStatisticsChart({
     super.key,
     required this.data,
+    required this.onTimeRangeChanged,
+    required this.currentTimeRange,
+    this.isLoading = false,
   });
 
   @override
@@ -48,22 +54,25 @@ class OrderStatisticsChart extends StatelessWidget {
                   color: AppColors.background,
                   borderRadius: BorderRadius.circular(20.r),
                 ),
-                child: Row(
-                  children: [
-                    Text(
-                      'Today',
-                      style: TextStyle(
-                        color: AppColors.textPrimary.withOpacity(0.7),
-                        fontSize: 12.sp,
+                child: GestureDetector(
+                  onTap: () => _showTimeRangeSelector(context),
+                  child: Row(
+                    children: [
+                      Text(
+                        _getTimeRangeLabel(currentTimeRange),
+                        style: TextStyle(
+                          color: AppColors.textPrimary.withOpacity(0.7),
+                          fontSize: 12.sp,
+                        ),
                       ),
-                    ),
-                    SizedBox(width: 4.w),
-                    Icon(
-                      Icons.keyboard_arrow_down,
-                      color: AppColors.textPrimary.withOpacity(0.7),
-                      size: 16.w,
-                    ),
-                  ],
+                      SizedBox(width: 4.w),
+                      Icon(
+                        Icons.keyboard_arrow_down,
+                        color: AppColors.textPrimary.withOpacity(0.7),
+                        size: 16.w,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -75,9 +84,23 @@ class OrderStatisticsChart extends StatelessWidget {
                 flex: 2,
                 child: SizedBox(
                   height: 200.h,
-                  child: CustomPaint(
-                    painter: DonutChartPainter(data),
-                    child: Container(),
+                  child: Stack(
+                    children: [
+                      CustomPaint(
+                        painter: DonutChartPainter(data),
+                        child: Container(),
+                      ),
+                      if (isLoading)
+                        Container(
+                          color: AppColors.bgSecondary.withOpacity(0.8),
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              color: AppColors.primary,
+                              strokeWidth: 2,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ),
@@ -87,12 +110,36 @@ class OrderStatisticsChart extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildLegendItem('Pending Orders', data.pendingOrders, AppColors.primary),
-                    _buildLegendItem('Accepted Orders', data.acceptedOrders, AppColors.cursor),
-                    _buildLegendItem('Preparing Orders', data.preparingOrders, AppColors.accent),
-                    _buildLegendItem('Ready Orders', data.readyOrders, AppColors.labelColor),
-                    _buildLegendItem('Dispatched Orders', data.dispatchedOrders, const Color(0xFF9C27B0)),
-                    _buildLegendItem('Rejected Orders', data.rejectedOrders, const Color(0xFFFF5722)),
+                    _buildLegendItem(
+                      'Pending Orders',
+                      data.pendingOrders,
+                      AppColors.primary,
+                    ),
+                    _buildLegendItem(
+                      'Accepted Orders',
+                      data.acceptedOrders,
+                      AppColors.cursor,
+                    ),
+                    _buildLegendItem(
+                      'Preparing Orders',
+                      data.preparingOrders,
+                      AppColors.accent,
+                    ),
+                    _buildLegendItem(
+                      'Ready Orders',
+                      data.readyOrders,
+                      AppColors.labelColor,
+                    ),
+                    _buildLegendItem(
+                      'Dispatched Orders',
+                      data.dispatchedOrders,
+                      const Color(0xFF9C27B0),
+                    ),
+                    _buildLegendItem(
+                      'Rejected Orders',
+                      data.rejectedOrders,
+                      const Color(0xFFFF5722),
+                    ),
                   ],
                 ),
               ),
@@ -100,6 +147,77 @@ class OrderStatisticsChart extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  String _getTimeRangeLabel(String timeRange) {
+    switch (timeRange) {
+      case 'today':
+        return 'Today';
+      case 'week':
+        return 'This Week';
+      case 'month':
+        return 'This Month';
+      case 'year':
+        return 'This Year';
+      default:
+        return 'Today';
+    }
+  }
+
+  void _showTimeRangeSelector(BuildContext context) {
+    final timeRanges = [
+      {'value': 'today', 'label': 'Today'},
+      {'value': 'week', 'label': 'This Week'},
+      {'value': 'month', 'label': 'This Month'},
+      {'value': 'year', 'label': 'This Year'},
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.bgSecondary,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: EdgeInsets.all(20.w),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Select Time Range',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 20.h),
+              ...timeRanges.map((range) {
+                return ListTile(
+                  title: Text(
+                    range['label']!,
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 16.sp,
+                    ),
+                  ),
+                  trailing:
+                      currentTimeRange == range['value']
+                          ? Icon(Icons.check, color: AppColors.primary)
+                          : null,
+                  onTap: () {
+                    Navigator.pop(context);
+                    onTimeRangeChanged(range['value']!);
+                  },
+                );
+              // ignore: unnecessary_to_list_in_spreads
+              }).toList(),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -111,10 +229,7 @@ class OrderStatisticsChart extends StatelessWidget {
           Container(
             width: 12.w,
             height: 12.h,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
           SizedBox(width: 8.w),
           Expanded(
@@ -146,9 +261,10 @@ class DonutChartPainter extends CustomPainter {
     final total = data.totalOrders;
     if (total == 0) return;
 
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = radius - innerRadius;
+    final paint =
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = radius - innerRadius;
 
     double startAngle = -90 * (3.14159 / 180);
 
@@ -170,7 +286,10 @@ class DonutChartPainter extends CustomPainter {
 
         paint.color = color;
         canvas.drawArc(
-          Rect.fromCircle(center: center, radius: radius - (radius - innerRadius) / 2),
+          Rect.fromCircle(
+            center: center,
+            radius: radius - (radius - innerRadius) / 2,
+          ),
           startAngle,
           sweepAngle,
           false,

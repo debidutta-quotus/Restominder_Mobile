@@ -7,10 +7,16 @@ import '../../../../common/theme/app_colors.dart';
 
 class SalesSummaryChart extends StatelessWidget {
   final List<MonthlyRevenueData> data;
+  final Function(int) onMonthsCountChanged;
+  final int currentMonthsCount;
+  final bool isLoading;
 
   const SalesSummaryChart({
     super.key,
     required this.data,
+    required this.onMonthsCountChanged,
+    required this.currentMonthsCount,
+    this.isLoading = false,
   });
 
   @override
@@ -45,22 +51,25 @@ class SalesSummaryChart extends StatelessWidget {
                   color: AppColors.background,
                   borderRadius: BorderRadius.circular(20.r),
                 ),
-                child: Row(
-                  children: [
-                    Text(
-                      '5 months',
-                      style: TextStyle(
-                        color: AppColors.textPrimary.withOpacity(0.7),
-                        fontSize: 12.sp,
+                child: GestureDetector(
+                  onTap: () => _showMonthsSelector(context),
+                  child: Row(
+                    children: [
+                      Text(
+                        '$currentMonthsCount months',
+                        style: TextStyle(
+                          color: AppColors.textPrimary.withOpacity(0.7),
+                          fontSize: 12.sp,
+                        ),
                       ),
-                    ),
-                    SizedBox(width: 4.w),
-                    Icon(
-                      Icons.keyboard_arrow_down,
-                      color: AppColors.textPrimary.withOpacity(0.7),
-                      size: 16.w,
-                    ),
-                  ],
+                      SizedBox(width: 4.w),
+                      Icon(
+                        Icons.keyboard_arrow_down,
+                        color: AppColors.textPrimary.withOpacity(0.7),
+                        size: 16.w,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -76,13 +85,75 @@ class SalesSummaryChart extends StatelessWidget {
           SizedBox(height: 20.h),
           SizedBox(
             height: 200.h,
-            child: CustomPaint(
-              painter: LineChartPainter(data),
-              child: Container(),
+            child: Stack(
+              children: [
+                CustomPaint(
+                  painter: LineChartPainter(data),
+                  child: Container(),
+                ),
+                if (isLoading)
+                  Container(
+                    color: AppColors.bgSecondary.withOpacity(0.8),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                        strokeWidth: 2,
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
         ],
       ),
+    );
+  }
+
+  void _showMonthsSelector(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.bgSecondary,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: EdgeInsets.all(20.w),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Select Time Period',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 20.h),
+              ...List.generate(6, (index) {
+                final months = (index + 1) * 3; // 3, 6, 9, 12, 15, 18 months
+                return ListTile(
+                  title: Text(
+                    '$months months',
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 16.sp,
+                    ),
+                  ),
+                  trailing: currentMonthsCount == months
+                      ? Icon(Icons.check, color: AppColors.primary)
+                      : null,
+                  onTap: () {
+                    Navigator.pop(context);
+                    onMonthsCountChanged(months);
+                  },
+                );
+              }),
+            ],
+          ),
+        );
+      },
     );
   }
 
