@@ -108,11 +108,11 @@ class _DashboardPageState extends State<DashboardPage> {
 
               return SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 80.h),
+                padding: EdgeInsets.fromLTRB(8.w, 0, 8.w, 80.h),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SizedBox(height: 16.h),
+                    // SizedBox(height: 16.h),
                     
                     // Revenue Cards
                     Row(
@@ -125,7 +125,7 @@ class _DashboardPageState extends State<DashboardPage> {
                             iconColor: AppColors.primary,
                           ),
                         ),
-                        SizedBox(width: 16.w),
+                        SizedBox(width: 8.w),
                         Expanded(
                           child: RevenueCard(
                             title: 'Dispatched Orders',
@@ -137,7 +137,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       ],
                     ),
                     
-                    SizedBox(height: 24.h),
+                    SizedBox(height: 8.h),
                     
                     // Sales Summary Chart
                     if (provider.monthlyRevenue != null)
@@ -150,7 +150,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         isLoading: provider.isLoading,
                       ),
                     
-                    SizedBox(height: 24.h),
+                    SizedBox(height: 8.h),
                     
                     // Order Statistics Chart
                     if (provider.orderStatistics != null)
