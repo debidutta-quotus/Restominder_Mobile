@@ -111,15 +111,7 @@ class _SalesSummaryChartState extends State<SalesSummaryChart> {
                 if (selectedDataPointIndex != null && selectedDataType != null)
                   _buildTooltip(),
                 if (widget.isLoading)
-                  Container(
-                    color: AppColors.bgSecondary.withOpacity(0.8),
-                    child: Center(
-                      child: CircularProgressIndicator(
-                        color: AppColors.primary,
-                        strokeWidth: 2,
-                      ),
-                    ),
-                  ),
+                  _buildSkeletonLoader(),
               ],
             ),
           ),
@@ -252,7 +244,7 @@ class _SalesSummaryChartState extends State<SalesSummaryChart> {
             ),
             Text(
               isRevenue 
-                  ? data.totalRevenue.toStringAsFixed(0)
+                  ? '\$${data.totalRevenue.toStringAsFixed(0)}'
                   : '${data.orderCount} orders',
               style: TextStyle(
                 color: AppColors.bgSecondary,
@@ -273,6 +265,18 @@ class _SalesSummaryChartState extends State<SalesSummaryChart> {
       ),
     );
   }
+
+  // SKELETON LOADER - Matches chart shape and size exactly
+  Widget _buildSkeletonLoader() {
+    return Container(
+      color: AppColors.bgSecondary.withOpacity(1),
+      child: CustomPaint(
+        painter: SkeletonChartPainter(),
+        child: Container(),
+      ),
+    );
+  }
+
   void _showMonthsSelector(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -343,6 +347,133 @@ class _SalesSummaryChartState extends State<SalesSummaryChart> {
       ],
     );
   }
+}
+
+// Skeleton loader painter that matches the chart layout exactly
+class SkeletonChartPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = AppColors.textPrimary.withOpacity(0.1)
+      ..strokeWidth = 3
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    // Match exact chart dimensions
+    const double leftMargin = 50.0;
+    const double rightMargin = 40.0;
+    final chartWidth = size.width - leftMargin - rightMargin;
+    final chartHeight = size.height - 60;
+    
+    // Draw skeleton data points (5 points to match typical chart)
+    final skeletonPoints = <Offset>[];
+    const pointCount = 5;
+    final stepX = chartWidth / (pointCount - 1);
+    
+    for (int i = 0; i < pointCount; i++) {
+      final x = leftMargin + i * stepX;
+      final y = 20 + chartHeight * 0.3 + (i % 3) * (chartHeight * 0.4); // Varied heights
+      skeletonPoints.add(Offset(x, y));
+    }
+    
+    // Draw skeleton revenue line
+    if (skeletonPoints.length > 1) {
+      final path = Path();
+      path.moveTo(skeletonPoints[0].dx, skeletonPoints[0].dy);
+      for (int i = 1; i < skeletonPoints.length; i++) {
+        path.lineTo(skeletonPoints[i].dx, skeletonPoints[i].dy);
+      }
+      canvas.drawPath(path, paint);
+    }
+    
+    // Draw skeleton order line (dashed)
+    paint.style = PaintingStyle.stroke;
+    final orderPoints = <Offset>[];
+    for (int i = 0; i < pointCount; i++) {
+      final x = leftMargin + i * stepX;
+      final y = 20 + chartHeight * 0.5 + ((i + 1) % 3) * (chartHeight * 0.3);
+      orderPoints.add(Offset(x, y));
+    }
+    
+    if (orderPoints.length > 1) {
+      for (int i = 0; i < orderPoints.length - 1; i++) {
+        _drawSkeletonDashedLine(canvas, orderPoints[i], orderPoints[i + 1], paint);
+      }
+    }
+    
+    // Draw skeleton dots
+    final dotPaint = Paint()
+      ..color = AppColors.textPrimary.withOpacity(0.1)
+      ..style = PaintingStyle.fill;
+      
+    for (final point in skeletonPoints) {
+      canvas.drawCircle(point, 5, dotPaint);
+      canvas.drawCircle(point, 2, Paint()..color = AppColors.bgSecondary);
+    }
+    
+    for (final point in orderPoints) {
+      canvas.drawCircle(point, 5, dotPaint);
+      canvas.drawCircle(point, 2, Paint()..color = AppColors.bgSecondary);
+    }
+    
+    // Draw skeleton Y-axis labels
+    final textPaint = Paint()
+      ..color = AppColors.textPrimary.withOpacity(0.08)
+      ..style = PaintingStyle.fill;
+      
+    // Left Y-axis skeleton labels
+    for (int i = 0; i <= 5; i++) {
+      final y = 20 + chartHeight - (i / 5 * chartHeight);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(8, y - 6, 30, 12),
+          Radius.circular(4),
+        ),
+        textPaint,
+      );
+    }
+    
+    // Right Y-axis skeleton labels
+    for (int i = 0; i <= 5; i++) {
+      final y = 20 + chartHeight - (i / 5 * chartHeight);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(size.width - rightMargin + 8, y - 6, 20, 12),
+          Radius.circular(4),
+        ),
+        textPaint,
+      );
+    }
+    
+    // Draw skeleton month labels
+    for (int i = 0; i < pointCount; i++) {
+      final x = leftMargin + i * stepX;
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(x - 15, size.height - 15, 30, 10),
+          Radius.circular(4),
+        ),
+        textPaint,
+      );
+    }
+  }
+  
+  void _drawSkeletonDashedLine(Canvas canvas, Offset start, Offset end, Paint paint) {
+    const dashWidth = 8.0;
+    const dashSpace = 4.0;
+    
+    final distance = (end - start).distance;
+    final dashCount = (distance / (dashWidth + dashSpace)).floor();
+    
+    for (int i = 0; i < dashCount; i++) {
+      final startOffset = start + (end - start) * (i * (dashWidth + dashSpace) / distance);
+      final endOffset = start + (end - start) * ((i * (dashWidth + dashSpace) + dashWidth) / distance);
+      canvas.drawLine(startOffset, endOffset, paint);
+    }
+  }
+  
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 // Triangle painter for tooltip pointer
